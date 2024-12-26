@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -ggdb -std=c99 -pedantic
-LIBS=-lX11
+CFLAGS=-Wall -Wextra -ggdb -std=c99 -pedantic -I/usr/include/freetype2
+LIBS=-lX11 -lXft
 DEPS=ui.h
 FILES=main.o ui.o
 

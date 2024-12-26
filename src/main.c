@@ -11,10 +11,9 @@
 
 
 
-
 int main(void) {
 
-    App app = app_new("#ff0000", "#0000ff");
+    App app = app_new("#1a1a1a", "#2e2e2e", 1, 0.3f);
     app_loop(&app);
     app_destroy(&app);
 

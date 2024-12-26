@@ -6,6 +6,7 @@
 #include <X11/Xlib.h>
 #include <X11/X.h>
 #include <X11/Xutil.h>
+#include <X11/Xft/Xft.h>
 
 #include "./ui.h"
 
@@ -25,26 +26,37 @@ static void set_color(App *app, const char *color) {
 
 
 
-App app_new(const char *color_bg, const char *color_border) {
+
+App app_new(
+    const char *color_bg,
+    const char *color_border,
+    int border_width,
+    float ratio
+) {
 
     Display *dpy  = XOpenDisplay(NULL);
     Window root   = XDefaultRootWindow(dpy);
-    int scr       = XDefaultScreen(dpy);
-    Colormap cmap = XDefaultColormap(dpy, scr);
+    int scr_num   = XDefaultScreen(dpy);
+    Colormap cmap = XDefaultColormap(dpy, scr_num);
     GC gc         = XCreateGC(dpy, root, 0, NULL);
+    Screen *scr   = XScreenOfDisplay(dpy, scr_num);
+
+    XftInit(NULL);
+    XftFont *font = XftFontOpenName(dpy, scr_num, "JetBrainsMono Nerd Font");
+    // XftDraw *xft_draw = XftDrawCreate(dpy, root, NULL, cmap);
+    // XftColor *xft_color = NULL;
+    // XftColorAllocName(dpy, NULL, cmap, "red", xft_color);
+
 
     int x = 0, y = 0;
-    int width = 500, height = 500;
-    int border_width = 5;
-
-    unsigned long pixel_bg     = get_color(dpy, cmap, color_bg);
-    unsigned long pixel_border = get_color(dpy, cmap, color_border);
+    int width  = ratio * XWidthOfScreen(scr);
+    int height = XHeightOfScreen(scr);
 
     int valuemask = CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWEventMask;
     XSetWindowAttributes winattr = {
         .override_redirect = true,
-        .background_pixel  = pixel_bg,
-        .border_pixel      = pixel_border,
+        .background_pixel  = get_color(dpy, cmap, color_bg),
+        .border_pixel      = get_color(dpy, cmap, color_border),
         .event_mask        = KeyPressMask | ExposureMask,
     };
 
@@ -53,8 +65,7 @@ App app_new(const char *color_bg, const char *color_border) {
     Window win = XCreateWindow(
         dpy, root,
         x, y,
-        width, height,
-        border_width,
+        width, height, border_width,
         CopyFromParent,
         CopyFromParent,
         CopyFromParent,
@@ -66,18 +77,21 @@ App app_new(const char *color_bg, const char *color_border) {
     XMapRaised(dpy, win);
 
     App app = {
-        .dpy  = dpy,
-        .root = root,
-        .scr  = scr,
-        .cmap = cmap,
-        .gc   = gc,
-        .win  = win,
+        .dpy     = dpy,
+        .root    = root,
+        .font    = font,
+        .scr_num = scr_num,
+        .scr     = scr,
+        .cmap    = cmap,
+        .gc      = gc,
+        .win     = win,
     };
     return app;
 
 }
 
 void app_destroy(App *app) {
+    XftFontClose(app->dpy, app->font);
     XFreeColormap(app->dpy, app->cmap);
     XFreeGC(app->dpy, app->gc);
     XDestroyWindow(app->dpy, app->win);
@@ -97,6 +111,11 @@ void app_loop(App *app) {
 
         set_color(app, "#000000");
         XDrawRectangle(app->dpy, app->win, app->gc, 50, 50, 100, 100);
+
+        set_color(app, "#ffffff");
+        XDrawString(app->dpy, app->win, app->gc, 0, 150, "foo", 3);
+
+        // XftDrawStringUtf8(
 
         switch (ev.type) {
 
