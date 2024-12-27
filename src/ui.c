@@ -1,3 +1,4 @@
+#include <X11/extensions/Xrender.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -9,6 +10,7 @@
 #include <X11/Xft/Xft.h>
 
 #include "./ui.h"
+#include "./fuzzy.h"
 
 
 
@@ -28,8 +30,12 @@ static void set_color(App *app, const char *color) {
 
 
 App app_new(
+    const char **input,
+    size_t input_count,
     const char *color_bg,
     const char *color_border,
+    const char *color_text,
+    const char *font_name,
     int border_width,
     float ratio
 ) {
@@ -40,14 +46,9 @@ App app_new(
     Colormap cmap = XDefaultColormap(dpy, scr_num);
     GC gc         = XCreateGC(dpy, root, 0, NULL);
     Screen *scr   = XScreenOfDisplay(dpy, scr_num);
+    Visual *vis   = XDefaultVisual(dpy, scr_num);
 
-    XftInit(NULL);
-    XftFont *font = XftFontOpenName(dpy, scr_num, "JetBrainsMono Nerd Font");
-    // XftDraw *xft_draw = XftDrawCreate(dpy, root, NULL, cmap);
-    // XftColor *xft_color = NULL;
-    // XftColorAllocName(dpy, NULL, cmap, "red", xft_color);
-
-
+    /* Init Window */
     int x = 0, y = 0;
     int width  = ratio * XWidthOfScreen(scr);
     int height = XHeightOfScreen(scr);
@@ -75,23 +76,39 @@ App app_new(
 
     XSetClassHint(dpy, win, &class_hint);
     XMapRaised(dpy, win);
+    /* ----------- */
+
+    /* Init Xft */
+    XftFont *font         = XftFontOpenName(dpy, scr_num, font_name);
+    XftDraw *xft_draw_ctx = XftDrawCreate(dpy, win, vis, cmap);
+    XftColor xft_color = { 0 };
+    XftColorAllocName(dpy, vis, cmap, color_text, &xft_color);
+    /* -------- */
 
     App app = {
-        .dpy     = dpy,
-        .root    = root,
-        .font    = font,
-        .scr_num = scr_num,
-        .scr     = scr,
-        .cmap    = cmap,
-        .gc      = gc,
-        .win     = win,
+        .input        = input,
+        .input_count  = input_count,
+        .dpy          = dpy,
+        .root         = root,
+        .scr_num      = scr_num,
+        .scr          = scr,
+        .cmap         = cmap,
+        .gc           = gc,
+        .win          = win,
+        .vis          = vis,
+        .font         = font,
+        .xft_draw_ctx = xft_draw_ctx,
+        .xft_color    = xft_color,
     };
     return app;
 
 }
 
 void app_destroy(App *app) {
+    XftDrawDestroy(app->xft_draw_ctx);
+    XftColorFree(app->dpy, app->vis, app->cmap, &app->xft_color);
     XftFontClose(app->dpy, app->font);
+
     XFreeColormap(app->dpy, app->cmap);
     XFreeGC(app->dpy, app->gc);
     XDestroyWindow(app->dpy, app->win);
@@ -100,6 +117,17 @@ void app_destroy(App *app) {
 
 
 
+static void render_string(App *app, int x, int y, const char *str) {
+    XftDrawString8(
+        app->xft_draw_ctx,
+        &app->xft_color,
+        app->font,
+        x,
+        y,
+        (FcChar8 *) str,
+        strlen(str)
+    );
+}
 
 
 void app_loop(App *app) {
@@ -109,13 +137,14 @@ void app_loop(App *app) {
         XNextEvent(app->dpy, &ev);
         puts("event!");
 
-        set_color(app, "#000000");
+        set_color(app, "#ff0000");
         XDrawRectangle(app->dpy, app->win, app->gc, 50, 50, 100, 100);
 
-        set_color(app, "#ffffff");
-        XDrawString(app->dpy, app->win, app->gc, 0, 150, "foo", 3);
-
-        // XftDrawStringUtf8(
+        for (size_t i=0; i < app->input_count; ++i) {
+            const char *s = app->input[i];
+            int spacing = 50;
+            render_string(app, 0, spacing + spacing * i, s);
+        }
 
         switch (ev.type) {
 

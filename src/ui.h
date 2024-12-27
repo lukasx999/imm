@@ -10,7 +10,12 @@
 #include <X11/Xft/Xft.h>
 
 
+
 typedef struct {
+    // Input
+    const char **input;
+    size_t input_count;
+
     Display *dpy;
     Window root;
     int scr_num;
@@ -18,16 +23,20 @@ typedef struct {
     Colormap cmap;
     GC gc;
     Window win;
+    Visual *vis;
 
     XftFont *font;
+    XftDraw *xft_draw_ctx;
+    XftColor xft_color;
 } App;
 
-
-extern App app_new(const char *color_bg, const char *color_border, int border_width, float ratio);
+extern App app_new(const char **input, size_t input_count,
+                   const char *color_bg, const char *color_border,
+                   const char *color_text,
+                   const char *font_name,
+                   int border_width, float ratio);
 extern void app_destroy(App *app);
 extern void app_loop(App *app);
-
-
 
 
 
