@@ -1,4 +1,5 @@
 #include <X11/extensions/Xrender.h>
+#include <fontconfig/fontconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -81,7 +82,7 @@ App app_new(
     /* Init Xft */
     XftFont *font         = XftFontOpenName(dpy, scr_num, font_name);
     XftDraw *xft_draw_ctx = XftDrawCreate(dpy, win, vis, cmap);
-    XftColor xft_color = { 0 };
+    XftColor xft_color    = { 0 };
     XftColorAllocName(dpy, vis, cmap, color_text, &xft_color);
     /* -------- */
 
@@ -108,7 +109,6 @@ void app_destroy(App *app) {
     XftDrawDestroy(app->xft_draw_ctx);
     XftColorFree(app->dpy, app->vis, app->cmap, &app->xft_color);
     XftFontClose(app->dpy, app->font);
-
     XFreeColormap(app->dpy, app->cmap);
     XFreeGC(app->dpy, app->gc);
     XDestroyWindow(app->dpy, app->win);
@@ -119,13 +119,9 @@ void app_destroy(App *app) {
 
 static void render_string(App *app, int x, int y, const char *str) {
     XftDrawString8(
-        app->xft_draw_ctx,
-        &app->xft_color,
-        app->font,
-        x,
-        y,
-        (FcChar8 *) str,
-        strlen(str)
+        app->xft_draw_ctx, &app->xft_color, app->font,
+        x, y,
+        (FcChar8 *) str, strlen(str)
     );
 }
 
@@ -137,17 +133,19 @@ void app_loop(App *app) {
         XNextEvent(app->dpy, &ev);
         puts("event!");
 
-        set_color(app, "#ff0000");
-        XDrawRectangle(app->dpy, app->win, app->gc, 50, 50, 100, 100);
+        // set_color(app, "#ff0000");
+        // XDrawRectangle(app->dpy, app->win, app->gc, 50, 50, 100, 100);
 
         for (size_t i=0; i < app->input_count; ++i) {
             const char *s = app->input[i];
             int spacing = 50;
+
+            XGlyphInfo extents = { 0 };
+            XftTextExtents8(app->dpy, app->font, (FcChar8 *) s, strlen(s), &extents);
             render_string(app, 0, spacing + spacing * i, s);
         }
 
         switch (ev.type) {
-
             case KeyPress: {
                 puts("key pressed!");
             } break;

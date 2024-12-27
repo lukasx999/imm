@@ -35,7 +35,7 @@ int main(void) {
         "#1a1a1a",
         "#2e2e2e",
         "#dba204",
-        "JetBrainsMono Nerd Font",
+        "JetBrainsMono Nerd Font:size=20",
         1,
         0.3f
     );
