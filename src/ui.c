@@ -1,9 +1,8 @@
-#include <X11/extensions/Xrender.h>
-#include <fontconfig/fontconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <assert.h>
 
 #include <X11/Xlib.h>
 #include <X11/X.h>
@@ -43,6 +42,7 @@ App app_new(
 ) {
 
     Display *dpy  = XOpenDisplay(NULL);
+    assert(dpy != NULL);
     Window root   = XDefaultRootWindow(dpy);
     int scr_num   = XDefaultScreen(dpy);
     Colormap cmap = XDefaultColormap(dpy, scr_num);
@@ -76,6 +76,9 @@ App app_new(
         &winattr
     );
 
+    // XIM im = XOpenIM(dpy, NULL, NULL, NULL);
+    // assert(im != NULL);
+
     XSetClassHint(dpy, win, &class_hint);
     XMapRaised(dpy, win);
     /* ----------- */
@@ -88,20 +91,22 @@ App app_new(
     /* -------- */
 
     App app = {
-        .input        = input,
-        .input_count  = input_count,
-        .dpy          = dpy,
-        .root         = root,
-        .scr_num      = scr_num,
-        .scr          = scr,
-        .cmap         = cmap,
-        .gc           = gc,
-        .win          = win,
-        .vis          = vis,
-        .text_spacing = text_spacing,
-        .font         = font,
-        .xft_draw_ctx = xft_draw_ctx,
-        .xft_color    = xft_color,
+        .window_height = height,
+        .window_width  = width,
+        .input         = input,
+        .input_count   = input_count,
+        .dpy           = dpy,
+        .root          = root,
+        .scr_num       = scr_num,
+        .scr           = scr,
+        .cmap          = cmap,
+        .gc            = gc,
+        .win           = win,
+        .vis           = vis,
+        .text_spacing  = text_spacing,
+        .font          = font,
+        .xft_draw_ctx  = xft_draw_ctx,
+        .xft_color     = xft_color,
     };
     return app;
 
@@ -135,8 +140,34 @@ void app_loop(App *app) {
         XNextEvent(app->dpy, &ev);
         puts("event!");
 
-        // set_color(app, "#ff0000");
-        // XDrawRectangle(app->dpy, app->win, app->gc, 50, 50, 100, 100);
+
+        // XSetInputFocus(app->dpy, app->win, RevertToParent, CurrentTime);
+        /*
+        int ret = XGrabKeyboard(
+            app->dpy,
+            app->root,
+            true,
+            GrabModeAsync,
+            GrabModeAsync,
+            CurrentTime
+        );
+        assert(ret == GrabSuccess);
+        */
+
+
+
+
+        set_color(app, "#363636");
+        int padding = 25;
+        XFillRectangle(
+            app->dpy,
+            app->win,
+            app->gc,
+            padding,
+            padding,
+            app->window_width - padding*2,
+            app->window_height - padding*2
+        );
 
         for (size_t i=0; i < app->input_count; ++i) {
             const char *s = app->input[i];
@@ -147,7 +178,8 @@ void app_loop(App *app) {
             int spacing = extents.height + app->text_spacing;
 
             render_string(
-                app, 0,
+                app,
+                0,
                 (spacing + spacing * i) - app->text_spacing, s
             );
 
@@ -155,6 +187,8 @@ void app_loop(App *app) {
 
         switch (ev.type) {
             case KeyPress: {
+                XKeyEvent key_event = ev.xkey;
+                key_event.state;
                 puts("key pressed!");
             } break;
 

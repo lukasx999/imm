@@ -61,13 +61,8 @@ static void free_strings(char **strings, size_t capacity) {
 
 int main(void) {
 
-    size_t strcount = 0;
-    size_t capacity = 0;
-    char **strings = get_strings(&strcount, &capacity);
-
-    for (size_t i=0; i < strcount; ++i) {
-        printf("string: %s\n", strings[i]);
-    }
+    size_t strcount = 0, capacity = 0;
+    char **strings  = get_strings(&strcount, &capacity);
 
     // const char *query = "foobarbaz";
     // const char *strings[] = { "foo", "bar", "baz" };
@@ -87,6 +82,7 @@ int main(void) {
         "#2e2e2e",
         "#dba204",
         "JetBrainsMono Nerd Font:size=20",
+        // "Roboto:size=20",
         30,
         1,
         0.3f
@@ -94,7 +90,6 @@ int main(void) {
 
     app_loop(&app);
     app_destroy(&app);
-
     free_strings(strings, capacity);
 
     return EXIT_SUCCESS;

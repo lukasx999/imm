@@ -16,6 +16,9 @@ typedef struct {
     const char **input;
     size_t input_count;
 
+    int window_width;
+    int window_height;
+
     Display *dpy;
     Window root;
     int scr_num;
