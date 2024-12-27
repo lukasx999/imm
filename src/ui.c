@@ -37,6 +37,7 @@ App app_new(
     const char *color_border,
     const char *color_text,
     const char *font_name,
+    int text_spacing,
     int border_width,
     float ratio
 ) {
@@ -97,6 +98,7 @@ App app_new(
         .gc           = gc,
         .win          = win,
         .vis          = vis,
+        .text_spacing = text_spacing,
         .font         = font,
         .xft_draw_ctx = xft_draw_ctx,
         .xft_color    = xft_color,
@@ -118,7 +120,7 @@ void app_destroy(App *app) {
 
 
 static void render_string(App *app, int x, int y, const char *str) {
-    XftDrawString8(
+    XftDrawStringUtf8(
         app->xft_draw_ctx, &app->xft_color, app->font,
         x, y,
         (FcChar8 *) str, strlen(str)
@@ -138,11 +140,17 @@ void app_loop(App *app) {
 
         for (size_t i=0; i < app->input_count; ++i) {
             const char *s = app->input[i];
-            int spacing = 50;
 
             XGlyphInfo extents = { 0 };
-            XftTextExtents8(app->dpy, app->font, (FcChar8 *) s, strlen(s), &extents);
-            render_string(app, 0, spacing + spacing * i, s);
+            // using 'X' because its the tallest character
+            XftTextExtents8(app->dpy, app->font, (FcChar8 *) "X", strlen("X"), &extents);
+            int spacing = extents.height + app->text_spacing;
+
+            render_string(
+                app, 0,
+                (spacing + spacing * i) - app->text_spacing, s
+            );
+
         }
 
         switch (ev.type) {

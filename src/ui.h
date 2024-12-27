@@ -25,6 +25,7 @@ typedef struct {
     Window win;
     Visual *vis;
 
+    int text_spacing;
     XftFont *font;
     XftDraw *xft_draw_ctx;
     XftColor xft_color;
@@ -34,6 +35,7 @@ extern App app_new(const char **input, size_t input_count,
                    const char *color_bg, const char *color_border,
                    const char *color_text,
                    const char *font_name,
+                   int text_spacing,
                    int border_width, float ratio);
 extern void app_destroy(App *app);
 extern void app_loop(App *app);
