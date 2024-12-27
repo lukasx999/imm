@@ -11,7 +11,7 @@
 #include <string.h>
 
 #include "./ui.h"
-#include "./fuzzy.h"
+#include "./sort.h"
 
 
 
@@ -22,6 +22,8 @@ static unsigned long get_color(Display *dpy, Colormap cmap, const char *color) {
     return xcolor.pixel;
 }
 
+
+
 static void set_color(App *app, const char *color) {
     unsigned long pixel = get_color(app->dpy, app->cmap, color);
     XSetForeground(app->dpy, app->gc, pixel);
@@ -29,11 +31,11 @@ static void set_color(App *app, const char *color) {
 
 
 
-
 App app_new(
-    const char **input,
-    size_t input_count,
+    const char **strings,
+    size_t strings_count,
     const char *color_bg,
+    const char *color_hl,
     const char *color_border,
     const char *color_strings,
     const char *color_query,
@@ -78,9 +80,6 @@ App app_new(
         &winattr
     );
 
-    // XIM im = XOpenIM(dpy, NULL, NULL, NULL);
-    // assert(im != NULL);
-
     XSetClassHint(dpy, win, &class_hint);
     XMapRaised(dpy, win);
     /* ----------- */
@@ -90,40 +89,45 @@ App app_new(
     XftDraw *xft_draw_ctx = XftDrawCreate(dpy, win, vis, cmap);
 
     XftColor xft_color_strings = { 0 };
+    XftColor xft_color_query   = { 0 };
+    XftColor xft_color_hl      = { 0 };
     XftColorAllocName(dpy, vis, cmap, color_strings, &xft_color_strings);
-
-    XftColor xft_color_query = { 0 };
     XftColorAllocName(dpy, vis, cmap, color_query, &xft_color_query);
+    XftColorAllocName(dpy, vis, cmap, color_hl, &xft_color_hl);
     /* -------- */
 
     App app = {
-        .query             = { 0 },
-        .quit              = false,
-        .window_height     = height,
-        .window_width      = width,
-        .strings           = input,
-        .strings_count     = input_count,
-        .dpy               = dpy,
-        .root              = root,
-        .scr_num           = scr_num,
-        .scr               = scr,
-        .cmap              = cmap,
-        .gc                = gc,
-        .win               = win,
-        .vis               = vis,
-        .text_spacing      = text_spacing,
-        .font              = font,
-        .xft_draw_ctx      = xft_draw_ctx,
-        .xft_color_strings = xft_color_strings,
-        .xft_color_query   = xft_color_query,
+        .cursor        = 0,
+        .query         = { 0 },
+        .quit          = false,
+        .window_height = height,
+        .window_width  = width,
+        .strings       = strings,
+        .strings_len   = strings_count,
+        .dpy           = dpy,
+        .root          = root,
+        .scr_num       = scr_num,
+        .scr           = scr,
+        .cmap          = cmap,
+        .gc            = gc,
+        .win           = win,
+        .vis           = vis,
+        .text_spacing  = text_spacing,
+        .font          = font,
+        .xft_drawctx   = xft_draw_ctx,
+        .color_strings = xft_color_strings,
+        .color_query   = xft_color_query,
+        .color_hl      = xft_color_hl,
     };
     return app;
 
 }
 
+
+
 void app_destroy(App *app) {
-    XftDrawDestroy(app->xft_draw_ctx);
-    XftColorFree(app->dpy, app->vis, app->cmap, &app->xft_color_strings);
+    XftDrawDestroy(app->xft_drawctx);
+    XftColorFree(app->dpy, app->vis, app->cmap, &app->color_strings);
     XftFontClose(app->dpy, app->font);
     XFreeColormap(app->dpy, app->cmap);
     XFreeGC(app->dpy, app->gc);
@@ -133,14 +137,13 @@ void app_destroy(App *app) {
 
 
 
-static void render_string(App *app, int x, int y, const char *str, const XftColor *color) {
+static void render_string(const App *app, int x, int y, const char *str, const XftColor *color) {
     XftDrawStringUtf8(
-        app->xft_draw_ctx, color, app->font,
+        app->xft_drawctx, color, app->font,
         x, y,
         (FcChar8 *) str, strlen(str)
     );
 }
-
 
 
 
@@ -153,10 +156,14 @@ static void handle_keypress(App *app, XKeyEvent *key_event) {
 
         switch (sym) {
             case XK_N: {
-                puts("next");
+                app->cursor++;
+                if (app->cursor > (int) app->strings_len-1)
+                    app->cursor = 0;
             } break;
             case XK_P: {
-                puts("prev");
+                app->cursor--;
+                if (app->cursor < 0)
+                    app->cursor = app->strings_len-1;
             } break;
             case XK_U: {
                 strncpy(app->query, "", QUERY_MAXLEN);
@@ -169,6 +176,10 @@ static void handle_keypress(App *app, XKeyEvent *key_event) {
     } else {
 
         switch (sym) {
+            case XK_Return: {
+                printf("%s\n", app->strings[app->cursor]);
+                app->quit = true;
+            } break;
             case XK_Escape: {
                 app->quit = true;
             } break;
@@ -189,11 +200,72 @@ static void handle_keypress(App *app, XKeyEvent *key_event) {
 }
 
 
+
 static unsigned short get_font_height(const App *app) {
     XGlyphInfo extents = { 0 };
     // using 'X' because its the tallest character
     XftTextExtents8(app->dpy, app->font, (FcChar8 *) "X", strlen("X"), &extents);
     return extents.height;
+}
+
+static unsigned short get_font_width(const App *app) {
+    XGlyphInfo extents = { 0 };
+    XftTextExtents8(app->dpy, app->font, (FcChar8 *) "X", strlen("X"), &extents);
+    return extents.width;
+}
+
+
+
+static void render_ui(const App *app) {
+
+    int string_spacing = get_font_height(app) + app->text_spacing;
+
+    /* Cursor */
+    XftDrawRect(
+        app->xft_drawctx,
+        &app->color_query,
+        strlen(app->query) * get_font_width(app),
+        0,
+        2,
+        get_font_height(app)
+    );
+    /* -------- */
+
+    /* Cursorline */
+    XftDrawRect(
+        app->xft_drawctx,
+        &app->color_hl,
+        0,
+        string_spacing + app->cursor * string_spacing,
+        app->window_width,
+        get_font_height(app)
+    );
+    /* -------- */
+
+    /* Query */
+    render_string(
+        app,
+        0,
+        get_font_height(app),
+        app->query,
+        &app->color_query
+    );
+    /* ----- */
+
+    /* Strings */
+    int strings_offset = string_spacing;
+
+    for (size_t i=0; i < app->strings_len; ++i) {
+        const char *s = app->strings[i];
+        render_string(
+            app,
+            0,
+            strings_offset + (string_spacing + string_spacing * i) - app->text_spacing, s,
+            &app->color_strings
+        );
+    }
+    /* ------- */
+
 }
 
 
@@ -205,7 +277,7 @@ void app_loop(App *app) {
         XNextEvent(app->dpy, &ev);
 
         XClearWindow(app->dpy, app->win);
-        fuzzy_sort(app->query, app->strings, app->strings_count);
+        fuzzy_sort(app->query, app->strings, app->strings_len);
 
         XGrabKeyboard(
             app->dpy,
@@ -216,43 +288,7 @@ void app_loop(App *app) {
             CurrentTime
         );
 
-
-        set_color(app, "#363636");
-        int padding = 25;
-        XFillRectangle(
-            app->dpy,
-            app->win,
-            app->gc,
-            padding,
-            padding,
-            app->window_width - padding*2,
-            app->window_height - padding*2
-        );
-
-
-        int strings_offset = 50;
-        render_string(
-            app,
-            0,
-            get_font_height(app),
-            app->query,
-            &app->xft_color_query
-        );
-
-
-        for (size_t i=0; i < app->strings_count; ++i) {
-            const char *s = app->strings[i];
-
-            int spacing = get_font_height(app) + app->text_spacing;
-
-            render_string(
-                app,
-                0,
-                strings_offset + (spacing + spacing * i) - app->text_spacing, s,
-                &app->xft_color_strings
-            );
-
-        }
+        render_ui(app);
 
         switch (ev.type) {
             case KeyPress: {
@@ -265,6 +301,3 @@ void app_loop(App *app) {
 
     }
 }
-
-
-

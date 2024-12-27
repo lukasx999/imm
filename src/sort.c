@@ -7,7 +7,7 @@
 #include <string.h>
 #include <pthread.h>
 
-#include "./fuzzy.h"
+#include "./sort.h"
 
 
 
@@ -27,8 +27,8 @@ static size_t lev(const char *a, const char *b) {
 }
 
 static int comp(const void *a, const void *b, void *q) {
-    const char *x = *(const char **) a;
-    const char *y = *(const char **) b;
+    const char *x     = *(const char **) a;
+    const char *y     = *(const char **) b;
     const char *query = (const char *) q;
     return lev(query, x) - lev(query, y);
 }

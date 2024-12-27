@@ -10,7 +10,6 @@
 #include <X11/Xutil.h>
 
 #include "./ui.h"
-#include "./fuzzy.h"
 
 
 
@@ -61,27 +60,17 @@ static void free_strings(char **strings, size_t capacity) {
 
 int main(void) {
 
-    size_t strcount = 0, capacity = 0;
-    char **strings  = get_strings(&strcount, &capacity);
-
-    // const char *query = "foobarbaz";
-    // const char *strings[] = { "foo", "bar", "baz" };
-    // size_t strcount = sizeof strings / sizeof *strings;
-    /*
-    fuzzy_sort(query, strings, strcount);
-    for (size_t i=0; i < strcount; ++i) {
-        puts(strings[i]);
-    }
-    */
-
+    size_t strings_len = 0, strings_capacity = 0;
+    char **strings  = get_strings(&strings_len, &strings_capacity);
 
     App app = app_new(
         (const char **) strings,
-        strcount,
+        strings_len,
         "#1a1a1a",
         "#2e2e2e",
-        "#dba204",
-        "#4287f5",
+        "#2e2e2e",
+        "#adadad",
+        "#adadad",
         "JetBrainsMono Nerd Font:size=20",
         // "Roboto:size=20",
         30,
@@ -91,7 +80,7 @@ int main(void) {
 
     app_loop(&app);
     app_destroy(&app);
-    free_strings(strings, capacity);
+    free_strings(strings, strings_capacity);
 
     return EXIT_SUCCESS;
 

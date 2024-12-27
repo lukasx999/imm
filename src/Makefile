@@ -1,8 +1,8 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -ggdb -std=c99 -pedantic -I/usr/include/freetype2 -O3
 LIBS=-lX11 -lXft
-DEPS=ui.h fuzzy.h
-FILES=main.o ui.o fuzzy.o
+DEPS=ui.h sort.h
+FILES=main.o ui.o sort.o
 
 all: $(FILES) $(DEPS)
 	@$(CC) $(CFLAGS) $(LIBS) $^ -o out
