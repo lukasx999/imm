@@ -10,11 +10,16 @@
 #include <X11/Xft/Xft.h>
 
 
+#define QUERY_MAXLEN 25
+
 
 typedef struct {
-    // Input
-    const char **input;
-    size_t input_count;
+    const char **strings;
+    size_t strings_count;
+
+    char query[QUERY_MAXLEN];
+
+    bool quit;
 
     int window_width;
     int window_height;
@@ -31,12 +36,14 @@ typedef struct {
     int text_spacing;
     XftFont *font;
     XftDraw *xft_draw_ctx;
-    XftColor xft_color;
+    XftColor xft_color_strings;
+    XftColor xft_color_query;
 } App;
 
 extern App app_new(const char **input, size_t input_count,
                    const char *color_bg, const char *color_border,
-                   const char *color_text,
+                   const char *color_strings,
+                   const char *color_query,
                    const char *font_name,
                    int text_spacing,
                    int border_width, float ratio);

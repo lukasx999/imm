@@ -81,6 +81,7 @@ int main(void) {
         "#1a1a1a",
         "#2e2e2e",
         "#dba204",
+        "#4287f5",
         "JetBrainsMono Nerd Font:size=20",
         // "Roboto:size=20",
         30,
