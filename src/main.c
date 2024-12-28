@@ -63,22 +63,22 @@ int main(void) {
     size_t strings_len = 0, strings_capacity = 0;
     char **strings  = get_strings(&strings_len, &strings_capacity);
 
-    App app = app_new(
+    Menu menu = menu_new(
         (const char **) strings,
         strings_len,
         "#1a1a1a",
         "#2e2e2e",
         "#2e2e2e",
         "#adadad",
-        "#adadad",
+        "#e3e3e3",
         "JetBrainsMono Nerd Font:size=20",
         10,
         1,
         0.15f
     );
 
-    app_loop(&app);
-    app_destroy(&app);
+    menu_run(&menu);
+    menu_destroy(&menu);
     free_strings(strings, strings_capacity);
 
     return EXIT_SUCCESS;

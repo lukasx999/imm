@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -11,68 +10,29 @@
 
 
 
-static size_t min(size_t a, size_t b, size_t c) {
-    return (a < b) ? a : ((b < c) ? b : c);
+Matches matches_init(const char **strings, size_t strings_len) {
+    const char **sorted = calloc(strings_len, sizeof(const char*));
+    return (Matches) {
+        .strings     = strings,
+        .strings_len = strings_len,
+        .sorted      = sorted,
+        .sorted_len  = 0,
+    };
 }
 
-static size_t lev(const char *a, const char *b) {
-    size_t len_a = strlen(a);
-    size_t len_b = strlen(b);
+void matches_sort(Matches *m, const char *query) {
+    memset(m->sorted, 0, m->strings_len);
+    size_t sorted_len = 0;
 
-    return !len_b ? len_a
-    : !len_a ? len_b
-    : a[0] == b[0] ? lev(a+1, b+1)
-    : 1 + min(lev(a+1, b), lev(a, b+1), lev(a+1, b+1));
-
-}
-
-static int comp(const void *a, const void *b, void *q) {
-    const char *x     = *(const char **) a;
-    const char *y     = *(const char **) b;
-    const char *query = (const char *) q;
-    return lev(query, x) - lev(query, y);
-}
-
-
-
-#if 1
-
-void fuzzy_sort(const char *query, const char **strings, size_t strings_count) {
-    qsort_r(strings, strings_count, sizeof(char*), comp, (void *) query);
-}
-
-#else
-
-typedef struct {
-    const char *query;
-    const char *string;
-    int result_dist;
-} ThreadArgs;
-
-
-static void *threaded_lev(void *args_) {
-    ThreadArgs *args = args_;
-    args->result_dist = lev(args->query, args->string);
-    return NULL;
-}
-
-
-void fuzzy_sort(const char *query, const char **strings, size_t strings_count) {
-
-    pthread_t thread_ids[strings_count];
-    ThreadArgs args[strings_count];
-
-    for (size_t i=0; i < strings_count; ++i) {
-        args[i].query       = query;
-        args[i].string      = strings[i];
-        args[i].result_dist = 0;
-        pthread_create(&thread_ids[i], NULL, threaded_lev, &args[i]);
+    for (size_t i=0; i < m->strings_len; ++i) {
+        const char *s = m->strings[i];
+        if (!strncmp(s, query, strlen(query)))
+            m->sorted[sorted_len++] = s;
     }
-
-    for (size_t i=0; i < strings_count; ++i) {
-        pthread_join(thread_ids[i], NULL);
-        // int dist = ret->result_dist;
-    }
-
+    m->sorted_len = sorted_len;
 }
-#endif
+
+void matches_destroy(Matches *m) {
+    free(m->sorted);
+    m->sorted = NULL;
+}

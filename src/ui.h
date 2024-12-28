@@ -9,17 +9,17 @@
 #include <X11/X.h>
 #include <X11/Xft/Xft.h>
 
+#include "./sort.h"
+
+
 
 #define QUERY_MAXLEN BUFSIZ
 
 
 typedef struct {
-    const char **strings;
-    size_t strings_len;
-
-    int cursor;
-
+    Matches matches;
     char query[QUERY_MAXLEN];
+    int cursor;
 
     bool quit;
 
@@ -41,10 +41,10 @@ typedef struct {
     XftColor color_strings;
     XftColor color_query;
     XftColor color_hl;
-} App;
+} Menu;
 
-extern App app_new(
-    const char **strings, size_t strings_count,
+extern Menu menu_new(
+    const char **strings, size_t strings_len,
     const char *color_bg,
     const char *color_hl,
     const char *color_border,
@@ -54,8 +54,8 @@ extern App app_new(
     int text_spacing,
     int border_width, float ratio
 );
-extern void app_destroy(App *app);
-extern void app_loop(App *app);
+extern void menu_destroy(Menu *menu);
+extern void menu_run(Menu *menu);
 
 
 

@@ -24,16 +24,9 @@ static unsigned long get_color(Display *dpy, Colormap cmap, const char *color) {
 
 
 
-static void set_color(App *app, const char *color) {
-    unsigned long pixel = get_color(app->dpy, app->cmap, color);
-    XSetForeground(app->dpy, app->gc, pixel);
-}
-
-
-
-App app_new(
+Menu menu_new(
     const char **strings,
-    size_t strings_count,
+    size_t strings_len,
     const char *color_bg,
     const char *color_hl,
     const char *color_border,
@@ -92,54 +85,57 @@ App app_new(
     XftColor xft_color_query   = { 0 };
     XftColor xft_color_hl      = { 0 };
     XftColorAllocName(dpy, vis, cmap, color_strings, &xft_color_strings);
-    XftColorAllocName(dpy, vis, cmap, color_query, &xft_color_query);
-    XftColorAllocName(dpy, vis, cmap, color_hl, &xft_color_hl);
+    XftColorAllocName(dpy, vis, cmap, color_query,   &xft_color_query);
+    XftColorAllocName(dpy, vis, cmap, color_hl,      &xft_color_hl);
     /* -------- */
 
-    App app = {
-        .cursor        = 0,
-        .query         = { 0 },
-        .quit          = false,
-        .window_height = height,
-        .window_width  = width,
-        .strings       = strings,
-        .strings_len   = strings_count,
-        .dpy           = dpy,
-        .root          = root,
-        .scr_num       = scr_num,
-        .scr           = scr,
-        .cmap          = cmap,
-        .gc            = gc,
-        .win           = win,
-        .vis           = vis,
-        .text_spacing  = text_spacing,
-        .font          = font,
-        .xft_drawctx   = xft_draw_ctx,
-        .color_strings = xft_color_strings,
-        .color_query   = xft_color_query,
-        .color_hl      = xft_color_hl,
+    Matches matches = matches_init(strings, strings_len);
+
+    Menu menu = {
+        .matches          = matches,
+        .cursor           = 0,
+        .query            = { 0 },
+        .quit             = false,
+        .window_height    = height,
+        .window_width     = width,
+        .dpy              = dpy,
+        .root             = root,
+        .scr_num          = scr_num,
+        .scr              = scr,
+        .cmap             = cmap,
+        .gc               = gc,
+        .win              = win,
+        .vis              = vis,
+        .text_spacing     = text_spacing,
+        .font             = font,
+        .xft_drawctx      = xft_draw_ctx,
+        .color_strings    = xft_color_strings,
+        .color_query      = xft_color_query,
+        .color_hl         = xft_color_hl,
     };
-    return app;
+    return menu;
 
 }
 
 
 
-void app_destroy(App *app) {
-    XftDrawDestroy(app->xft_drawctx);
-    XftColorFree(app->dpy, app->vis, app->cmap, &app->color_strings);
-    XftFontClose(app->dpy, app->font);
-    XFreeColormap(app->dpy, app->cmap);
-    XFreeGC(app->dpy, app->gc);
-    XDestroyWindow(app->dpy, app->win);
-    XCloseDisplay(app->dpy);
+void menu_destroy(Menu *menu) {
+    XftDrawDestroy(menu->xft_drawctx);
+    XftColorFree(menu->dpy, menu->vis, menu->cmap, &menu->color_strings);
+    XftColorFree(menu->dpy, menu->vis, menu->cmap, &menu->color_hl);
+    XftColorFree(menu->dpy, menu->vis, menu->cmap, &menu->color_query);
+    XftFontClose(menu->dpy, menu->font);
+    XFreeColormap(menu->dpy, menu->cmap);
+    XFreeGC(menu->dpy, menu->gc);
+    XDestroyWindow(menu->dpy, menu->win);
+    XCloseDisplay(menu->dpy);
 }
 
 
 
-static void render_string(const App *app, int x, int y, const char *str, const XftColor *color) {
+static void render_string(const Menu *menu, int x, int y, const char *str, const XftColor *color) {
     XftDrawStringUtf8(
-        app->xft_drawctx, color, app->font,
+        menu->xft_drawctx, color, menu->font,
         x, y,
         (FcChar8 *) str, strlen(str)
     );
@@ -147,7 +143,85 @@ static void render_string(const App *app, int x, int y, const char *str, const X
 
 
 
-static void handle_keypress(App *app, XKeyEvent *key_event) {
+
+
+
+static unsigned short get_font_height(const Menu *menu) {
+    XGlyphInfo extents = { 0 };
+    // using 'X' because its the tallest character
+    XftTextExtents8(menu->dpy, menu->font, (FcChar8 *) "X", strlen("X"), &extents);
+    return extents.height;
+}
+
+static unsigned short get_font_width(const Menu *menu) {
+    XGlyphInfo extents = { 0 };
+    XftTextExtents8(menu->dpy, menu->font, (FcChar8 *) "X", strlen("X"), &extents);
+    return extents.width;
+}
+
+
+
+
+
+static void render_ui(const Menu *menu) {
+
+    int offset_x = 15;
+
+    /* Cursor */
+    XftDrawRect(
+        menu->xft_drawctx,
+        &menu->color_query,
+        offset_x + strlen(menu->query) * get_font_width(menu),
+        0,
+        2,
+        get_font_height(menu)*2
+    );
+    /* -------- */
+
+    /* Query */
+    render_string(
+        menu,
+        offset_x,
+        get_font_height(menu)*1.5,
+        menu->query,
+        &menu->color_query
+    );
+    /* ----- */
+
+    // TODO: add vertical bar before cursorline like fzf
+    // TODO: show matches count at the right in the textbox
+
+    int string_height = get_font_height(menu)*2 + menu->text_spacing;
+
+    if (menu->matches.sorted_len != 0) {
+        /* Cursorline */
+        XftDrawRect(
+            menu->xft_drawctx,
+            &menu->color_hl,
+            offset_x,
+            string_height + string_height * menu->cursor,
+            menu->window_width,
+            get_font_height(menu)*2
+        );
+        /* -------- */
+    }
+
+    /* Strings */
+    for (size_t i=0; i < menu->matches.sorted_len; ++i) {
+        render_string(
+            menu,
+            offset_x,
+            string_height + string_height * i + get_font_height(menu) * 1.5,
+            menu->matches.sorted[i],
+            &menu->color_strings
+        );
+    }
+    /* ------- */
+
+}
+
+
+static void handle_keypress(Menu *menu, XKeyEvent *key_event) {
 
     KeySym sym     = XLookupKeysym(key_event, 1);
     uint32_t state = key_event->state;
@@ -156,20 +230,20 @@ static void handle_keypress(App *app, XKeyEvent *key_event) {
 
         switch (sym) {
             case XK_N: {
-                app->cursor++;
-                if (app->cursor > (int) app->strings_len-1)
-                    app->cursor = 0;
+                menu->cursor++;
+                if ((size_t) menu->cursor > menu->matches.sorted_len-1)
+                    menu->cursor = 0;
             } break;
             case XK_P: {
-                app->cursor--;
-                if (app->cursor < 0)
-                    app->cursor = app->strings_len-1;
+                menu->cursor--;
+                if (menu->cursor < 0)
+                    menu->cursor = menu->matches.sorted_len-1;
             } break;
             case XK_U: {
-                strncpy(app->query, "", QUERY_MAXLEN);
+                strncpy(menu->query, "", QUERY_MAXLEN);
             } break;
             case XK_C: {
-                app->quit = true;
+                menu->quit = true;
             } break;
         }
 
@@ -177,21 +251,23 @@ static void handle_keypress(App *app, XKeyEvent *key_event) {
 
         switch (sym) {
             case XK_Return: {
-                printf("%s\n", app->strings[app->cursor]);
-                app->quit = true;
+                puts(menu->matches.sorted[menu->cursor]);
+                menu->quit = true;
             } break;
             case XK_Escape: {
-                app->quit = true;
+                menu->quit = true;
             } break;
             case XK_BackSpace: {
-                app->query[strcspn(app->query, "\0")-1] = '\0';
+                menu->query[strcspn(menu->query, "\0")-1] = '\0';
             } break;
             default: {
-                if (strlen(app->query)+1 == QUERY_MAXLEN)
+                if (strlen(menu->query) + 1 == QUERY_MAXLEN)
                     break;
-                char buf[50] = { 0 };
-                XLookupString(key_event, buf, 50, NULL, NULL);
-                strcat(app->query, buf);
+
+                char buf[64] = { 0 };
+                XLookupString(key_event, buf, sizeof buf, NULL, NULL);
+                strcat(menu->query, buf);
+
             } break;
         }
 
@@ -200,102 +276,45 @@ static void handle_keypress(App *app, XKeyEvent *key_event) {
 }
 
 
+static void handle_event(Menu *menu, XEvent *event) {
 
-static unsigned short get_font_height(const App *app) {
-    XGlyphInfo extents = { 0 };
-    // using 'X' because its the tallest character
-    XftTextExtents8(app->dpy, app->font, (FcChar8 *) "X", strlen("X"), &extents);
-    return extents.height;
-}
+    switch (event->type) {
+        case KeyPress: {
+            XKeyEvent key_event = event->xkey;
+            handle_keypress(menu, &key_event);
+        } break;
 
-static unsigned short get_font_width(const App *app) {
-    XGlyphInfo extents = { 0 };
-    XftTextExtents8(app->dpy, app->font, (FcChar8 *) "X", strlen("X"), &extents);
-    return extents.width;
-}
-
-
-
-static void render_ui(const App *app) {
-
-    /* Cursor */
-    XftDrawRect(
-        app->xft_drawctx,
-        &app->color_query,
-        strlen(app->query) * get_font_width(app),
-        0,
-        2,
-        get_font_height(app)*2
-    );
-    /* -------- */
-
-    /* Query */
-    render_string(
-        app,
-        0,
-        get_font_height(app)*1.5,
-        app->query,
-        &app->color_query
-    );
-    /* ----- */
-
-    int string_height = get_font_height(app)*2 + app->text_spacing;
-
-    /* Cursorline */
-    XftDrawRect(
-        app->xft_drawctx,
-        &app->color_hl,
-        0,
-        string_height + string_height * app->cursor,
-        app->window_width,
-        get_font_height(app)*2
-    );
-    /* -------- */
-
-    /* Strings */
-    for (size_t i=0; i < app->strings_len; ++i) {
-        render_string(
-            app,
-            0,
-            string_height + string_height * i + get_font_height(app) * 1.5,
-            app->strings[i],
-            &app->color_strings
-        );
+        default: {} break;
     }
-    /* ------- */
 
 }
 
 
+void menu_run(Menu *menu) {
 
-void app_loop(App *app) {
+    XEvent event = { 0 };
+    while (!menu->quit) {
+        XNextEvent(menu->dpy, &event);
+        XClearWindow(menu->dpy, menu->win);
+        matches_sort(&menu->matches, menu->query);
 
-    XEvent ev = { 0 };
-    while (!app->quit) {
-        XNextEvent(app->dpy, &ev);
-
-        XClearWindow(app->dpy, app->win);
-        fuzzy_sort(app->query, app->strings, app->strings_len);
+        // prevent cursor from clipping out of bounds when the amount of matches is reduced
+        if ((size_t) menu->cursor >= menu->matches.sorted_len)
+            menu->cursor = menu->matches.sorted_len-1;
 
         XGrabKeyboard(
-            app->dpy,
-            app->root,
+            menu->dpy,
+            menu->root,
             true,
             GrabModeAsync,
             GrabModeAsync,
             CurrentTime
         );
 
-        render_ui(app);
-
-        switch (ev.type) {
-            case KeyPress: {
-                XKeyEvent key_event = ev.xkey;
-                handle_keypress(app, &key_event);
-            } break;
-
-            default: {} break;
-        }
+        render_ui(menu);
+        handle_event(menu, &event);
 
     }
 }
+
+
