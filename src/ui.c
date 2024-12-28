@@ -218,8 +218,6 @@ static unsigned short get_font_width(const App *app) {
 
 static void render_ui(const App *app) {
 
-    int string_spacing = get_font_height(app) + app->text_spacing;
-
     /* Cursor */
     XftDrawRect(
         app->xft_drawctx,
@@ -227,18 +225,7 @@ static void render_ui(const App *app) {
         strlen(app->query) * get_font_width(app),
         0,
         2,
-        get_font_height(app)
-    );
-    /* -------- */
-
-    /* Cursorline */
-    XftDrawRect(
-        app->xft_drawctx,
-        &app->color_hl,
-        0,
-        string_spacing + app->cursor * string_spacing,
-        app->window_width,
-        get_font_height(app)
+        get_font_height(app)*2
     );
     /* -------- */
 
@@ -246,21 +233,32 @@ static void render_ui(const App *app) {
     render_string(
         app,
         0,
-        get_font_height(app),
+        get_font_height(app)*1.5,
         app->query,
         &app->color_query
     );
     /* ----- */
 
-    /* Strings */
-    int strings_offset = string_spacing;
+    int string_height = get_font_height(app)*2 + app->text_spacing;
 
+    /* Cursorline */
+    XftDrawRect(
+        app->xft_drawctx,
+        &app->color_hl,
+        0,
+        string_height + string_height * app->cursor,
+        app->window_width,
+        get_font_height(app)*2
+    );
+    /* -------- */
+
+    /* Strings */
     for (size_t i=0; i < app->strings_len; ++i) {
-        const char *s = app->strings[i];
         render_string(
             app,
             0,
-            strings_offset + (string_spacing + string_spacing * i) - app->text_spacing, s,
+            string_height + string_height * i + get_font_height(app) * 1.5,
+            app->strings[i],
             &app->color_strings
         );
     }

@@ -33,6 +33,46 @@ static int comp(const void *a, const void *b, void *q) {
     return lev(query, x) - lev(query, y);
 }
 
+
+
+#if 1
+
 void fuzzy_sort(const char *query, const char **strings, size_t strings_count) {
     qsort_r(strings, strings_count, sizeof(char*), comp, (void *) query);
 }
+
+#else
+
+typedef struct {
+    const char *query;
+    const char *string;
+    int result_dist;
+} ThreadArgs;
+
+
+static void *threaded_lev(void *args_) {
+    ThreadArgs *args = args_;
+    args->result_dist = lev(args->query, args->string);
+    return NULL;
+}
+
+
+void fuzzy_sort(const char *query, const char **strings, size_t strings_count) {
+
+    pthread_t thread_ids[strings_count];
+    ThreadArgs args[strings_count];
+
+    for (size_t i=0; i < strings_count; ++i) {
+        args[i].query       = query;
+        args[i].string      = strings[i];
+        args[i].result_dist = 0;
+        pthread_create(&thread_ids[i], NULL, threaded_lev, &args[i]);
+    }
+
+    for (size_t i=0; i < strings_count; ++i) {
+        pthread_join(thread_ids[i], NULL);
+        // int dist = ret->result_dist;
+    }
+
+}
+#endif

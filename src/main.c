@@ -72,10 +72,9 @@ int main(void) {
         "#adadad",
         "#adadad",
         "JetBrainsMono Nerd Font:size=20",
-        // "Roboto:size=20",
-        30,
+        10,
         1,
-        0.3f
+        0.15f
     );
 
     app_loop(&app);
