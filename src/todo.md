@@ -1,3 +1,4 @@
+- [ ] query cursor
 - [ ] implement fuzzy finding
 - [ ] add `install` target to Makefile
 - [ ] add vertical bar before cursorline like fzf

@@ -170,16 +170,13 @@ static void draw_string(const Menu *menu, int x, int y, const char *str, const X
 
 static void render_ui(Menu *m) {
 
-    int string_height = get_font_height(m) * 2 + m->opts.text_spacing;
+    int string_height   = get_font_height(m) * 2 + m->opts.text_spacing;
     int max_vis_entries = m->window_height / string_height - 1;
 
     if (m->cursor - m->scroll_offset >= max_vis_entries)
         m->scroll_offset += max_vis_entries;
     if (m->cursor - m->scroll_offset < 0)
         m->scroll_offset -= max_vis_entries;
-
-
-
 
     /* Cursor */
     XftDrawRect(
@@ -321,6 +318,12 @@ static void handle_keypress(Menu *m, XKeyEvent *key_event) {
                 break;
             case XK_P:
                 cursor_dec(m);
+                break;
+            case XK_F:
+                // TODO: query cursor
+                break;
+            case XK_B:
+                // TODO: query cursor
                 break;
             case XK_U:
                 query_clear(m);
