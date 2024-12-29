@@ -4,10 +4,12 @@ deps = [
   dependency('xext'),
 ]
 
-executable(
- 'xmenu',
- 'main.c',
- 'sort.c',
- 'ui.c',
- dependencies : deps,
+sources = [ 'main.c', 'sort.c', 'ui.c' ]
+
+bin = executable(
+  'xmenu',
+  sources,
+  dependencies : deps,
 )
+
+# test('run', bin)
