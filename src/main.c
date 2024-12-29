@@ -12,6 +12,16 @@
 #include "./ui.h"
 
 
+#ifdef CFG
+enum { COLOR_BG, COLOR_HL, COLOR_BORDER, COLOR_STRINGS, COLOR_QUERY };
+#else
+
+#include "./config.h"
+
+
+
+
+
 
 // out_capacity is needed for freeing the allocated memory
 static char **get_strings(size_t *out_strcount, size_t *out_capacity) {
@@ -66,15 +76,17 @@ int main(void) {
     Menu menu = menu_new(
         (const char **) strings,
         strings_len,
-        "#1a1a1a",
-        "#2e2e2e",
-        "#2e2e2e",
-        "#adadad",
-        "#e3e3e3",
-        "JetBrainsMono Nerd Font:size=20",
-        10,
-        1,
-        0.15f
+        colors[COLOR_BG],
+        colors[COLOR_HL],
+        colors[COLOR_BORDER],
+        colors[COLOR_STRINGS],
+        colors[COLOR_QUERY],
+        font_name,
+        position_x,
+        position_y,
+        text_spacing,
+        border_width,
+        ratio
     );
 
     menu_run(&menu);
@@ -84,3 +96,5 @@ int main(void) {
     return EXIT_SUCCESS;
 
 }
+
+#endif // CFG

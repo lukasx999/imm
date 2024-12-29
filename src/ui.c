@@ -1,8 +1,10 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <assert.h>
+#include <math.h>
 
 #include <X11/Xlib.h>
 #include <X11/X.h>
@@ -33,6 +35,8 @@ Menu menu_new(
     const char *color_strings,
     const char *color_query,
     const char *font_name,
+    int position_x,
+    int position_y,
     int text_spacing,
     int border_width,
     float ratio
@@ -48,23 +52,22 @@ Menu menu_new(
     Visual *vis   = XDefaultVisual(dpy, scr_num);
 
     /* Init Window */
-    int x = 0, y = 0;
-    int width  = ratio * XWidthOfScreen(scr);
-    int height = XHeightOfScreen(scr);
+    int width  = ratio * XWidthOfScreen(scr) - border_width*2;
+    int height = XHeightOfScreen(scr) - border_width*2;
 
     int valuemask = CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWEventMask;
     XSetWindowAttributes winattr = {
         .override_redirect = true,
         .background_pixel  = get_color(dpy, cmap, color_bg),
         .border_pixel      = get_color(dpy, cmap, color_border),
-        .event_mask        = KeyPressMask | ExposureMask,
+        .event_mask        = KeyPressMask | PointerMotionMask | ExposureMask,
     };
 
     XClassHint class_hint = { "xmenu", "xmenu" };
 
     Window win = XCreateWindow(
         dpy, root,
-        x, y,
+        position_x, position_y,
         width, height, border_width,
         CopyFromParent,
         CopyFromParent,
@@ -92,48 +95,39 @@ Menu menu_new(
     Matches matches = matches_init(strings, strings_len);
 
     Menu menu = {
+        .x.dpy            = dpy,
+        .x.root           = root,
+        .x.scr_num        = scr_num,
+        .x.scr            = scr,
+        .x.cmap           = cmap,
+        .x.gc             = gc,
+        .x.win            = win,
+        .x.vis            = vis,
         .matches          = matches,
         .cursor           = 0,
         .query            = { 0 },
         .quit             = false,
         .window_height    = height,
         .window_width     = width,
-        .dpy              = dpy,
-        .root             = root,
-        .scr_num          = scr_num,
-        .scr              = scr,
-        .cmap             = cmap,
-        .gc               = gc,
-        .win              = win,
-        .vis              = vis,
         .text_spacing     = text_spacing,
         .font             = font,
         .xft_drawctx      = xft_draw_ctx,
         .color_strings    = xft_color_strings,
         .color_query      = xft_color_query,
         .color_hl         = xft_color_hl,
+        .anim_x           = 0.0f,
     };
     return menu;
 
 }
 
-
-
 void menu_destroy(Menu *menu) {
-    XftDrawDestroy(menu->xft_drawctx);
-    XftColorFree(menu->dpy, menu->vis, menu->cmap, &menu->color_strings);
-    XftColorFree(menu->dpy, menu->vis, menu->cmap, &menu->color_hl);
-    XftColorFree(menu->dpy, menu->vis, menu->cmap, &menu->color_query);
-    XftFontClose(menu->dpy, menu->font);
-    XFreeColormap(menu->dpy, menu->cmap);
-    XFreeGC(menu->dpy, menu->gc);
-    XDestroyWindow(menu->dpy, menu->win);
-    XCloseDisplay(menu->dpy);
+    XCloseDisplay(menu->x.dpy);
 }
 
 
 
-static void render_string(const Menu *menu, int x, int y, const char *str, const XftColor *color) {
+static void draw_string(const Menu *menu, int x, int y, const char *str, const XftColor *color) {
     XftDrawStringUtf8(
         menu->xft_drawctx, color, menu->font,
         x, y,
@@ -141,27 +135,18 @@ static void render_string(const Menu *menu, int x, int y, const char *str, const
     );
 }
 
-
-
-
-
-
 static unsigned short get_font_height(const Menu *menu) {
     XGlyphInfo extents = { 0 };
     // using 'X' because its the tallest character
-    XftTextExtents8(menu->dpy, menu->font, (FcChar8 *) "X", strlen("X"), &extents);
+    XftTextExtents8(menu->x.dpy, menu->font, (FcChar8 *) "X", strlen("X"), &extents);
     return extents.height;
 }
 
 static unsigned short get_font_width(const Menu *menu) {
     XGlyphInfo extents = { 0 };
-    XftTextExtents8(menu->dpy, menu->font, (FcChar8 *) "X", strlen("X"), &extents);
+    XftTextExtents8(menu->x.dpy, menu->font, (FcChar8 *) "X", strlen("X"), &extents);
     return extents.width;
 }
-
-
-
-
 
 static void render_ui(const Menu *menu) {
 
@@ -179,7 +164,7 @@ static void render_ui(const Menu *menu) {
     /* -------- */
 
     /* Query */
-    render_string(
+    draw_string(
         menu,
         offset_x,
         get_font_height(menu)*1.5,
@@ -206,9 +191,11 @@ static void render_ui(const Menu *menu) {
         /* -------- */
     }
 
+
+
     /* Strings */
     for (size_t i=0; i < menu->matches.sorted_len; ++i) {
-        render_string(
+        draw_string(
             menu,
             offset_x,
             string_height + string_height * i + get_font_height(menu) * 1.5,
@@ -220,99 +207,167 @@ static void render_ui(const Menu *menu) {
 
 }
 
+static void cursor_inc(Menu *menu) {
+    menu->cursor++;
+    if ((size_t) menu->cursor > menu->matches.sorted_len-1)
+        menu->cursor = 0;
+}
+
+
+static void cursor_dec(Menu *menu) {
+    menu->cursor--;
+    if (menu->cursor < 0)
+        menu->cursor = menu->matches.sorted_len-1;
+}
+
+static void query_clear(Menu *menu) {
+    memset(menu->query, 0, QUERY_MAXLEN);
+}
+
+static void delchar(Menu *menu) {
+    menu->cursor = 0;
+    menu->query[strcspn(menu->query, "\0")-1] = '\0';
+}
+
+static void insert(Menu *menu, XKeyEvent *key_event) {
+    if (strlen(menu->query) + 1 == QUERY_MAXLEN)
+        return;
+
+    char buf[64] = { 0 };
+    XLookupString(key_event, buf, sizeof buf, NULL, NULL);
+    strcat(menu->query, buf);
+}
+
+static void select_entry(Menu *menu) {
+    puts(menu->matches.sorted[menu->cursor]);
+    menu->quit = true;
+}
 
 static void handle_keypress(Menu *menu, XKeyEvent *key_event) {
-
     KeySym sym     = XLookupKeysym(key_event, 1);
     uint32_t state = key_event->state;
 
     if (state & ControlMask) {
-
         switch (sym) {
-            case XK_N: {
-                menu->cursor++;
-                if ((size_t) menu->cursor > menu->matches.sorted_len-1)
-                    menu->cursor = 0;
-            } break;
-            case XK_P: {
-                menu->cursor--;
-                if (menu->cursor < 0)
-                    menu->cursor = menu->matches.sorted_len-1;
-            } break;
-            case XK_U: {
-                strncpy(menu->query, "", QUERY_MAXLEN);
-            } break;
-            case XK_C: {
+            case XK_N:
+                cursor_inc(menu);
+                break;
+            case XK_P:
+                cursor_dec(menu);
+                break;
+            case XK_U:
+                query_clear(menu);
+                break;
+            case XK_C:
                 menu->quit = true;
-            } break;
+                break;
         }
-
     } else {
-
         switch (sym) {
-            case XK_Return: {
-                puts(menu->matches.sorted[menu->cursor]);
+            case XK_Return:
+                select_entry(menu);
+                break;
+            case XK_Escape:
                 menu->quit = true;
-            } break;
-            case XK_Escape: {
-                menu->quit = true;
-            } break;
-            case XK_BackSpace: {
-                menu->query[strcspn(menu->query, "\0")-1] = '\0';
-            } break;
-            default: {
-                if (strlen(menu->query) + 1 == QUERY_MAXLEN)
-                    break;
+                break;
+            case XK_BackSpace:
+                delchar(menu);
+                break;
+            default:
+                insert(menu, key_event);
+                break;
+        }
+    }
 
-                char buf[64] = { 0 };
-                XLookupString(key_event, buf, sizeof buf, NULL, NULL);
-                strcat(menu->query, buf);
+}
 
-            } break;
+
+static void handle_pointer_motion(Menu *menu, XMotionEvent *motion_event) {
+    // TODO: this
+
+    int x = motion_event->x;
+    int y = motion_event->y;
+
+    int offset_x = 15;
+    int string_height = get_font_height(menu)*2 + menu->text_spacing;
+
+    for (size_t i=0; i < menu->matches.sorted_len; ++i) {
+
+        bool match_x = x >= offset_x && x <= offset_x + menu->window_width;
+        int yo = string_height + string_height * i;
+        bool match_y = y >= yo && y <= yo + get_font_height(menu)*2;
+
+        if (match_x && match_y) {
+            XClearWindow(menu->x.dpy, menu->x.win);
+            render_ui(menu);
+            XftDrawRect(
+                menu->xft_drawctx,
+                &menu->color_hl,
+                offset_x,
+                string_height + string_height * i,
+                menu->window_width,
+                get_font_height(menu)*2
+            );
         }
 
     }
 
 }
-
 
 static void handle_event(Menu *menu, XEvent *event) {
-
     switch (event->type) {
+
         case KeyPress: {
-            XKeyEvent key_event = event->xkey;
-            handle_keypress(menu, &key_event);
+            handle_keypress(menu, &event->xkey);
         } break;
 
-        default: {} break;
+        case MotionNotify: {
+            // handle_pointer_motion(menu, &event->xmotion);
+        } break;
+
+        case Expose:
+        case KeyRelease: break;
+
+        default: {
+            printf("event: %d\n", event->type);
+            assert(!"unknown event");
+        } break;
     }
-
 }
-
 
 void menu_run(Menu *menu) {
 
     XEvent event = { 0 };
     while (!menu->quit) {
-        XNextEvent(menu->dpy, &event);
-        XClearWindow(menu->dpy, menu->win);
-        matches_sort(&menu->matches, menu->query);
 
-        // prevent cursor from clipping out of bounds when the amount of matches is reduced
-        if ((size_t) menu->cursor >= menu->matches.sorted_len)
-            menu->cursor = menu->matches.sorted_len-1;
+        if (XPending(menu->x.dpy)) {
+            XNextEvent(menu->x.dpy, &event);
+            XClearWindow(menu->x.dpy, menu->x.win);
+            matches_sort(&menu->matches, menu->query);
 
-        XGrabKeyboard(
-            menu->dpy,
-            menu->root,
-            true,
-            GrabModeAsync,
-            GrabModeAsync,
-            CurrentTime
-        );
+            // prevent cursor from clipping out of bounds when the amount of matches is reduced
+            if ((size_t) menu->cursor >= menu->matches.sorted_len)
+                menu->cursor = 0;
 
-        render_ui(menu);
-        handle_event(menu, &event);
+            XGrabKeyboard(
+                menu->x.dpy,
+                menu->x.root,
+                true,
+                GrabModeAsync,
+                GrabModeAsync,
+                CurrentTime
+            );
+
+            render_ui(menu);
+            handle_event(menu, &event);
+
+        } else {
+
+            // TODO: this
+            // sinf(menu->anim_x) * menu->window_width;
+
+
+        }
 
     }
 }

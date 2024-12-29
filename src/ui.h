@@ -17,30 +17,28 @@
 
 
 typedef struct {
+    struct {
+        Display *dpy;
+        Window root;
+        int scr_num;
+        Screen *scr;
+        Colormap cmap;
+        GC gc;
+        Window win;
+        Visual *vis;
+    } x;
     Matches matches;
     char query[QUERY_MAXLEN];
     int cursor;
-
     bool quit;
-
-    int window_width;
-    int window_height;
-
-    Display *dpy;
-    Window root;
-    int scr_num;
-    Screen *scr;
-    Colormap cmap;
-    GC gc;
-    Window win;
-    Visual *vis;
-
+    int window_width, window_height;
     int text_spacing;
     XftFont *font;
     XftDraw *xft_drawctx;
     XftColor color_strings;
     XftColor color_query;
     XftColor color_hl;
+    float anim_x;
 } Menu;
 
 extern Menu menu_new(
@@ -51,6 +49,8 @@ extern Menu menu_new(
     const char *color_strings,
     const char *color_query,
     const char *font_name,
+    int position_x,
+    int position_y,
     int text_spacing,
     int border_width, float ratio
 );
