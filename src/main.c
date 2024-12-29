@@ -86,9 +86,11 @@ int main(void) {
         position_y,
         padding_x,
         padding_y,
+        cursor_width,
         text_spacing,
         border_width,
-        ratio
+        width_ratio,
+        wrapping
     );
 
     menu_run(&menu);

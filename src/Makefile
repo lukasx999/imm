@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -ggdb -std=c99 -pedantic -I/usr/include/freetype2 -O3
-LIBS=-lX11 -lXft -lm
+LIBS=-lX11 -lXft -lm -lXext
 DEPS=ui.h sort.h config.h
 FILES=main.o ui.o sort.o
 

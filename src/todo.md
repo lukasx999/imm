@@ -1,0 +1,4 @@
+- [ ] implement scrolling
+- [ ] implement fuzzy finding
+- [ ] add `install` target to Makefile
+- [ ] add animations using double buffering

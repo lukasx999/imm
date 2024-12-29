@@ -17,6 +17,7 @@
 
 
 typedef struct {
+
     struct {
         Display *dpy;
         Window root;
@@ -26,21 +27,25 @@ typedef struct {
         GC gc;
         Window win;
         Visual *vis;
+        XftDraw *xft_drawctx;
     } x;
+
+    struct {
+        bool wrapping;
+        int text_spacing;
+        int padding_x, padding_y;
+        int cursor_width;
+        XftColor color_strings, color_query, color_hl;
+    } opts;
+
     Matches matches;
     char query[QUERY_MAXLEN];
     int cursor;
     bool quit;
     int window_width, window_height;
-    int text_spacing;
-    int padding_x;
-    int padding_y;
     XftFont *font;
-    XftDraw *xft_drawctx;
-    XftColor color_strings;
-    XftColor color_query;
-    XftColor color_hl;
-    float anim_x;
+    float anim_x; // TODO: this
+
 } Menu;
 
 extern Menu menu_new(
@@ -55,8 +60,11 @@ extern Menu menu_new(
     int position_y,
     int padding_x,
     int padding_y,
+    int cursor_width,
     int text_spacing,
-    int border_width, float ratio
+    int border_width,
+    float ratio,
+    bool wrapping
 );
 extern void menu_destroy(Menu *menu);
 extern void menu_run(Menu *menu);
