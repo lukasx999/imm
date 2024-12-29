@@ -35,16 +35,17 @@ typedef struct {
         int text_spacing;
         int padding_x, padding_y;
         int cursor_width;
+        int scrollbar_width, scrollbar_height;
         XftColor color_strings, color_query, color_hl;
     } opts;
 
+    const int window_width, window_height;
     Matches matches;
     char query[QUERY_MAXLEN];
     int cursor;
+    int scroll_offset;
     bool quit;
-    int window_width, window_height;
     XftFont *font;
-    float anim_x; // TODO: this
 
 } Menu;
 
@@ -63,6 +64,8 @@ extern Menu menu_new(
     int cursor_width,
     int text_spacing,
     int border_width,
+    int scrollbar_width,
+    int scrollbar_height,
     float ratio,
     bool wrapping
 );

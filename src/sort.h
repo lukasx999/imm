@@ -17,6 +17,7 @@ typedef struct {
 extern Matches matches_init(const char **strings, size_t strings_len);
 extern void    matches_sort(Matches *m, const char *query);
 extern void    matches_destroy(Matches *m);
+extern const char *matches_get(const Matches *m, size_t index); // returns NULL on out of bounds indexing
 
 
 

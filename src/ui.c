@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include <string.h>
+#include <unistd.h>
 #include <math.h>
 
 #include <X11/Xlib.h>
@@ -15,6 +16,20 @@
 
 #include "./ui.h"
 #include "./sort.h"
+
+
+static unsigned short get_font_height(const Menu *menu) {
+    XGlyphInfo extents = { 0 };
+    // using 'X' because its the tallest character
+    XftTextExtents8(menu->x.dpy, menu->font, (FcChar8 *) "X", strlen("X"), &extents);
+    return extents.height;
+}
+
+static unsigned short get_font_width(const Menu *menu, const char *s) {
+    XGlyphInfo extents = { 0 };
+    XftTextExtents8(menu->x.dpy, menu->font, (FcChar8 *) s, strlen(s), &extents);
+    return extents.width;
+}
 
 
 
@@ -43,6 +58,8 @@ Menu menu_new(
     int cursor_width,
     int text_spacing,
     int border_width,
+    int scrollbar_width,
+    int scrollbar_height,
     float width_ratio,
     bool wrapping
 ) {
@@ -99,33 +116,37 @@ Menu menu_new(
 
     Matches matches = matches_init(strings, strings_len);
 
+
     Menu menu = {
-        .x.dpy              = dpy,
-        .x.root             = root,
-        .x.scr_num          = scr_num,
-        .x.scr              = scr,
-        .x.cmap             = cmap,
-        .x.gc               = gc,
-        .x.win              = win,
-        .x.vis              = vis,
-        .x.xft_drawctx        = xft_draw_ctx,
-        .opts.wrapping      = wrapping,
-        .opts.padding_x     = padding_x,
-        .opts.padding_y     = padding_y,
-        .opts.cursor_width  = cursor_width,
-        .opts.text_spacing  = text_spacing,
-        .opts.color_strings = xft_color_strings,
-        .opts.color_query   = xft_color_query,
-        .opts.color_hl      = xft_color_hl,
-        .matches            = matches,
-        .cursor             = 0,
-        .query              = { 0 },
-        .quit               = false,
-        .window_height      = height,
-        .window_width       = width,
-        .font               = font,
-        .anim_x             = 0.0f,
+        .x.dpy                 = dpy,
+        .x.root                = root,
+        .x.scr_num             = scr_num,
+        .x.scr                 = scr,
+        .x.cmap                = cmap,
+        .x.gc                  = gc,
+        .x.win                 = win,
+        .x.vis                 = vis,
+        .x.xft_drawctx         = xft_draw_ctx,
+        .opts.wrapping         = wrapping,
+        .opts.padding_x        = padding_x,
+        .opts.padding_y        = padding_y,
+        .opts.cursor_width     = cursor_width,
+        .opts.text_spacing     = text_spacing,
+        .opts.color_strings    = xft_color_strings,
+        .opts.color_query      = xft_color_query,
+        .opts.color_hl         = xft_color_hl,
+        .opts.scrollbar_width  = scrollbar_width,
+        .opts.scrollbar_height = scrollbar_height,
+        .matches               = matches,
+        .cursor                = 0,
+        .scroll_offset         = 0,
+        .query                 = { 0 },
+        .quit                  = false,
+        .window_height         = height,
+        .window_width          = width,
+        .font                  = font,
     };
+
     return menu;
 
 }
@@ -144,26 +165,21 @@ static void draw_string(const Menu *menu, int x, int y, const char *str, const X
     );
 }
 
-static unsigned short get_font_height(const Menu *menu) {
-    XGlyphInfo extents = { 0 };
-    // using 'X' because its the tallest character
-    XftTextExtents8(menu->x.dpy, menu->font, (FcChar8 *) "X", strlen("X"), &extents);
-    return extents.height;
-}
 
-// static unsigned short get_font_width(const Menu *menu) {
-//     XGlyphInfo extents = { 0 };
-//     XftTextExtents8(menu->x.dpy, menu->font, (FcChar8 *) "X", strlen("X"), &extents);
-//     return extents.width;
-// }
 
-static unsigned short get_font_width(const Menu *menu, const char *s) {
-    XGlyphInfo extents = { 0 };
-    XftTextExtents8(menu->x.dpy, menu->font, (FcChar8 *) s, strlen(s), &extents);
-    return extents.width;
-}
 
-static void render_ui(const Menu *m) {
+static void render_ui(Menu *m) {
+
+    int string_height = get_font_height(m) * 2 + m->opts.text_spacing;
+    int max_vis_entries = m->window_height / string_height - 1;
+
+    if (m->cursor - m->scroll_offset >= max_vis_entries)
+        m->scroll_offset += max_vis_entries;
+    if (m->cursor - m->scroll_offset < 0)
+        m->scroll_offset -= max_vis_entries;
+
+
+
 
     /* Cursor */
     XftDrawRect(
@@ -174,10 +190,11 @@ static void render_ui(const Menu *m) {
         m->opts.cursor_width,
         get_font_height(m)*2
     );
-    /* -------- */
+
+    // NOTE: the anchor point of strings in Xlib is at the bottom left
 
     /* Query */
-    int query_offset_y = m->opts.padding_y + get_font_height(m)*1.5;
+    int query_offset_y = m->opts.padding_y + get_font_height(m) * 1.5;
     draw_string(
         m,
         m->opts.padding_x,
@@ -185,51 +202,84 @@ static void render_ui(const Menu *m) {
         m->query,
         &m->opts.color_query
     );
-    /* ----- */
 
-    // TODO: add vertical bar before cursorline like fzf
-    // TODO: show matches count at the right in the textbox (5/10)
-
-    int string_height = get_font_height(m)*2 + m->opts.text_spacing;
-
+    /* Cursorline */
     if (m->matches.sorted_len != 0) {
-        /* Cursorline */
+        int y = string_height * (m->cursor - m->scroll_offset);
         XftDrawRect(
             m->x.xft_drawctx,
             &m->opts.color_hl,
             m->opts.padding_x,
-            m->opts.padding_y + string_height + string_height * m->cursor,
+            m->opts.padding_y + string_height + y,
             m->window_width,
             get_font_height(m)*2
         );
-        /* -------- */
     }
 
-    /* Strings */
-    for (size_t i=0; i < m->matches.sorted_len; ++i) {
+    /* Matches */
+    for (size_t i=0; i < (size_t) max_vis_entries; ++i) {
+        const char *item = matches_get(&m->matches, i + m->scroll_offset);
+        if (item == NULL)
+            break;
+
+        int y = string_height * i;
         draw_string(
             m,
             m->opts.padding_x,
-            query_offset_y + string_height + string_height * i,
-            m->matches.sorted[i],
+            query_offset_y + string_height + y,
+            item,
             &m->opts.color_strings
         );
     }
-    /* ------- */
+
+
+    /* Scrollbar */
+    float current = (float) m->cursor / m->matches.sorted_len;
+    int offsety   = m->opts.padding_y + string_height;
+    int y = current * (m->window_height - m->opts.scrollbar_height - offsety);
+    XftDrawRect(
+        m->x.xft_drawctx,
+        &m->opts.color_strings,
+        m->window_width - m->opts.scrollbar_width,
+        offsety + y,
+        m->opts.scrollbar_width,
+        m->opts.scrollbar_height
+    );
+
 
 }
+
+
+
 
 static void cursor_inc(Menu *m) {
     m->cursor++;
     size_t index_max = m->matches.sorted_len-1;
-    if ((size_t) m->cursor > index_max)
-        m->cursor = m->opts.wrapping ? 0 : index_max;
+    if ((size_t) m->cursor > index_max) {
+        if (m->opts.wrapping)
+            m->cursor = m->scroll_offset = 0;
+        else
+            m->cursor = index_max;
+    }
+
 }
 
+
 static void cursor_dec(Menu *m) {
+    // TODO: refactor
+    int string_height = get_font_height(m)*2 + m->opts.text_spacing;
+    int max_vis_entries = m->window_height / string_height - 1;
+    int max_offset = (m->matches.sorted_len / max_vis_entries) * max_vis_entries;
+
     m->cursor--;
-    if (m->cursor < 0)
-        m->cursor = m->opts.wrapping ? m->matches.sorted_len-1 : 0;
+    if (m->cursor < 0) {
+        if (m->opts.wrapping) {
+            m->cursor = m->matches.sorted_len-1;
+            m->scroll_offset = max_offset;
+        } else {
+            m->cursor = 0;
+        }
+    }
 }
 
 static void query_clear(Menu *m) {
@@ -242,13 +292,13 @@ static void delchar(Menu *m) {
     m->query[strlen(m->query)-1] = '\0';
 }
 
-static void insert(Menu *menu, XKeyEvent *key_event) {
-    if (strlen(menu->query) + 1 == QUERY_MAXLEN)
+static void insert(Menu *m, XKeyEvent *key_event) {
+    if (strlen(m->query) + 1 == QUERY_MAXLEN)
         return;
 
     char buf[64] = { 0 };
     XLookupString(key_event, buf, sizeof buf, NULL, NULL);
-    strcat(menu->query, buf);
+    strcat(m->query, buf);
 }
 
 static void select_entry(Menu *m) {
@@ -364,7 +414,8 @@ void menu_run(Menu *m) {
 
             // prevent cursor from clipping out of bounds when the amount of matches is reduced
             if ((size_t) m->cursor >= m->matches.sorted_len)
-                m->cursor = 0;
+                m->cursor = m->scroll_offset = 0;
+
 
             XGrabKeyboard(
                 m->x.dpy,
@@ -380,44 +431,12 @@ void menu_run(Menu *m) {
 
         } else {
 
-            // TODO: this
-            /*
-            XdbeBackBuffer back_buf = XdbeAllocateBackBufferName(m->x.dpy, m->x.win, 0);
-            XdbeDeallocateBackBufferName(m->x.dpy, back_buf);
-            */
-
-
-            /*
-            int animated_pos = m->window_width - sinf(m->anim_x) * m->window_width;
-            m->anim_x += 1e-5;
-
-            if (m->anim_x >= M_PI_2)
-                continue;
-
-            XSync(m->x.dpy, false);
-            XClearWindow(m->x.dpy, m->x.win);
-
-            // XClearArea(
-            //     m->x.dpy,
-            //     m->x.win,
-            //     0,
-            //     0,
-            //     m->window_width,
-            //     get_font_height(m)*2,
-            //     false
-            // );
-
-            XftDrawRect(
-                m->xft_drawctx,
-                &m->color_query,
-                animated_pos - m->cursor_width,
-                m->padding_y,
-                animated_pos,
-                get_font_height(m)*2
-            );
-            */
+            // const int fps = 60;
+            // usleep((1.0f/fps) * 10e6);
 
         }
+
+
 
     }
 }

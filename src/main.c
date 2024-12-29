@@ -89,6 +89,8 @@ int main(void) {
         cursor_width,
         text_spacing,
         border_width,
+        scrollbar_width,
+        scrollbar_height,
         width_ratio,
         wrapping
     );

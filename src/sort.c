@@ -36,3 +36,9 @@ void matches_destroy(Matches *m) {
     free(m->sorted);
     m->sorted = NULL;
 }
+
+const char *matches_get(const Matches *m, size_t index) {
+    return index >= m->sorted_len
+    ? NULL
+    : m->sorted[index];
+}

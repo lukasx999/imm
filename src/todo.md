@@ -1,4 +1,5 @@
-- [ ] implement scrolling
 - [ ] implement fuzzy finding
 - [ ] add `install` target to Makefile
-- [ ] add animations using double buffering
+- [ ] add vertical bar before cursorline like fzf
+- [ ] show matches count at the right in the textbox (5/10)
+- [x] implement scrolling
