@@ -84,6 +84,8 @@ int main(void) {
         font_name,
         position_x,
         position_y,
+        padding_x,
+        padding_y,
         text_spacing,
         border_width,
         ratio

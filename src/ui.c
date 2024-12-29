@@ -37,6 +37,8 @@ Menu menu_new(
     const char *font_name,
     int position_x,
     int position_y,
+    int padding_x,
+    int padding_y,
     int text_spacing,
     int border_width,
     float ratio
@@ -105,6 +107,8 @@ Menu menu_new(
         .x.vis            = vis,
         .matches          = matches,
         .cursor           = 0,
+        .padding_x        = padding_x,
+        .padding_y        = padding_y,
         .query            = { 0 },
         .quit             = false,
         .window_height    = height,
@@ -150,14 +154,12 @@ static unsigned short get_font_width(const Menu *menu) {
 
 static void render_ui(const Menu *menu) {
 
-    int offset_x = 15;
-
     /* Cursor */
     XftDrawRect(
         menu->xft_drawctx,
         &menu->color_query,
-        offset_x + strlen(menu->query) * get_font_width(menu),
-        0,
+        menu->padding_x + strlen(menu->query) * get_font_width(menu),
+        menu->padding_y,
         2,
         get_font_height(menu)*2
     );
@@ -166,15 +168,15 @@ static void render_ui(const Menu *menu) {
     /* Query */
     draw_string(
         menu,
-        offset_x,
-        get_font_height(menu)*1.5,
+        menu->padding_x,
+        menu->padding_y + get_font_height(menu)*1.5,
         menu->query,
         &menu->color_query
     );
     /* ----- */
 
     // TODO: add vertical bar before cursorline like fzf
-    // TODO: show matches count at the right in the textbox
+    // TODO: show matches count at the right in the textbox (5/10)
 
     int string_height = get_font_height(menu)*2 + menu->text_spacing;
 
@@ -183,8 +185,8 @@ static void render_ui(const Menu *menu) {
         XftDrawRect(
             menu->xft_drawctx,
             &menu->color_hl,
-            offset_x,
-            string_height + string_height * menu->cursor,
+            menu->padding_x,
+            menu->padding_y + string_height + string_height * menu->cursor,
             menu->window_width,
             get_font_height(menu)*2
         );
@@ -197,8 +199,8 @@ static void render_ui(const Menu *menu) {
     for (size_t i=0; i < menu->matches.sorted_len; ++i) {
         draw_string(
             menu,
-            offset_x,
-            string_height + string_height * i + get_font_height(menu) * 1.5,
+            menu->padding_x,
+            menu->padding_y + string_height + string_height * i + get_font_height(menu) * 1.5,
             menu->matches.sorted[i],
             &menu->color_strings
         );
@@ -221,12 +223,13 @@ static void cursor_dec(Menu *menu) {
 }
 
 static void query_clear(Menu *menu) {
+    menu->cursor = 0;
     memset(menu->query, 0, QUERY_MAXLEN);
 }
 
 static void delchar(Menu *menu) {
     menu->cursor = 0;
-    menu->query[strcspn(menu->query, "\0")-1] = '\0';
+    menu->query[strlen(menu->query)-1] = '\0';
 }
 
 static void insert(Menu *menu, XKeyEvent *key_event) {
@@ -239,7 +242,11 @@ static void insert(Menu *menu, XKeyEvent *key_event) {
 }
 
 static void select_entry(Menu *menu) {
-    puts(menu->matches.sorted[menu->cursor]);
+    if (menu->matches.sorted_len == 0) {
+        puts(menu->query);
+    } else {
+        puts(menu->matches.sorted[menu->cursor]);
+    }
     menu->quit = true;
 }
 

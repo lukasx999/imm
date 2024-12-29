@@ -33,6 +33,8 @@ typedef struct {
     bool quit;
     int window_width, window_height;
     int text_spacing;
+    int padding_x;
+    int padding_y;
     XftFont *font;
     XftDraw *xft_drawctx;
     XftColor color_strings;
@@ -51,6 +53,8 @@ extern Menu menu_new(
     const char *font_name,
     int position_x,
     int position_y,
+    int padding_x,
+    int padding_y,
     int text_spacing,
     int border_width, float ratio
 );
