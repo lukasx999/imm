@@ -42,7 +42,6 @@ void matches_sort(Matches *m, const char *query, bool case_sensitive) {
     m->sorted_len = sorted_len;
 }
 
-
 void matches_destroy(Matches *m) {
     free(m->sorted);
     m->sorted = NULL;

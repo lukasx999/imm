@@ -87,13 +87,15 @@ int main(void) {
         padding_x,
         padding_y,
         cursor_width,
+        cursorbar_width,
         text_spacing,
         border_width,
         scrollbar_width,
         scrollbar_height,
         width_ratio,
         wrapping,
-        case_sensitive
+        case_sensitive,
+        scroll_next_page
     );
 
     menu_run(&menu);

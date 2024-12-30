@@ -50,14 +50,17 @@ static void render_ui(Menu *m) {
     int string_height   = get_font_height(m) * 2 + m->opts.text_spacing;
     int max_vis_entries = m->window_height / string_height - 1;
 
+    int scroll_diff = m->opts.scroll_next_page ? max_vis_entries : 1;
+
     // Adjust scroll offset when cursor leaves the screen
     if (m->cursor - m->scroll_offset >= max_vis_entries)
-        m->scroll_offset += max_vis_entries;
+        m->scroll_offset += scroll_diff;
     if (m->cursor - m->scroll_offset < 0)
-        m->scroll_offset -= max_vis_entries;
+        m->scroll_offset -= scroll_diff;
+
+
 
     // prevent cursor from clipping out of bounds when the amount of matches is reduced
-    // TODO: refactor
     if ((size_t) m->cursor >= m->matches.sorted_len)
         m->cursor = m->scroll_offset = 0;
 
@@ -84,18 +87,35 @@ static void render_ui(Menu *m) {
         &m->opts.color_query
     );
 
-    /* Cursorline */
+
     if (m->matches.sorted_len != 0) {
         int y = string_height * (m->cursor - m->scroll_offset);
+
+        /* Cursorline */
         XftDrawRect(
             m->x.xft_drawctx,
             &m->opts.color_hl,
             m->opts.padding_x,
             m->opts.padding_y + string_height + y,
             m->window_width,
-            get_font_height(m)*2
+            get_font_height(m) * 2
         );
+
+        /* Cursorbar */
+        XftDrawRect(
+            m->x.xft_drawctx,
+            &m->opts.color_strings,
+            m->opts.padding_x,
+            m->opts.padding_y + string_height + y,
+            m->opts.cursorbar_width,
+            get_font_height(m) * 2
+        );
+
     }
+
+
+
+
 
     /* Matches */
     for (size_t i=0; i < (size_t) max_vis_entries; ++i) {
@@ -117,18 +137,17 @@ static void render_ui(Menu *m) {
         int y = string_height * i;
         draw_string(
             m,
-            m->opts.padding_x,
+            m->opts.padding_x * 2,
             query_offset_y + string_height + y,
             item,
             &m->opts.color_strings
         );
     }
 
-
     /* Scrollbar */
     float current = (float) m->cursor / m->matches.sorted_len;
     int offsety   = m->opts.padding_y + string_height;
-    int y = current * (m->window_height - m->opts.scrollbar_height - offsety);
+    int y         = current * (m->window_height - m->opts.scrollbar_height - offsety);
     XftDrawRect(
         m->x.xft_drawctx,
         &m->opts.color_strings,
@@ -190,11 +209,10 @@ static void insert(Menu *m, XKeyEvent *key_event) {
 }
 
 static void select_entry(Menu *m) {
-    if (m->matches.sorted_len == 0) {
-        puts(m->query);
-    } else {
-        puts(m->matches.sorted[m->cursor]);
-    }
+    const char *str = m->matches.sorted_len == 0
+        ? m->query
+        : m->matches.sorted[m->cursor];
+    puts(str);
     m->quit = true;
 }
 
@@ -204,17 +222,21 @@ static void handle_keypress(Menu *m, XKeyEvent *key_event) {
 
     if (state & ControlMask) {
         switch (sym) {
+            case XK_J:
             case XK_N:
                 cursor_inc(m);
                 break;
+            case XK_K:
             case XK_P:
                 cursor_dec(m);
                 break;
+            case XK_L:
             case XK_F:
-                // TODO: query cursor
+                assert(!"todo: move cursor");
                 break;
+            case XK_H:
             case XK_B:
-                // TODO: query cursor
+                assert(!"todo: move cursor");
                 break;
             case XK_U:
                 query_clear(m);
@@ -225,6 +247,12 @@ static void handle_keypress(Menu *m, XKeyEvent *key_event) {
         }
     } else {
         switch (sym) {
+            case XK_Down:
+                cursor_inc(m);
+                break;
+            case XK_Up:
+                cursor_dec(m);
+                break;
             case XK_Return:
                 select_entry(m);
                 break;
@@ -273,13 +301,15 @@ Menu menu_new(
     int padding_x,
     int padding_y,
     int cursor_width,
+    int cursorbar_width,
     int text_spacing,
     int border_width,
     int scrollbar_width,
     int scrollbar_height,
     float width_ratio,
     bool wrapping,
-    bool case_sensitive
+    bool case_sensitive,
+    bool scroll_next_page
 ) {
 
     Display *dpy  = XOpenDisplay(NULL);
@@ -292,8 +322,8 @@ Menu menu_new(
     Visual *vis   = XDefaultVisual(dpy, scr_num);
 
     /* Init Window */
-    int width  = width_ratio * XWidthOfScreen(scr) - border_width*2;
-    int height = XHeightOfScreen(scr) - border_width*2;
+    int width  = width_ratio * XWidthOfScreen(scr) - border_width * 2;
+    int height = XHeightOfScreen(scr) - border_width * 2;
 
     int valuemask = CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWEventMask;
     XSetWindowAttributes winattr = {
@@ -346,6 +376,7 @@ Menu menu_new(
         .x.xft_drawctx         = xft_draw_ctx,
         .opts.wrapping         = wrapping,
         .opts.case_sensitive   = case_sensitive,
+        .opts.scroll_next_page = scroll_next_page,
         .opts.padding_x        = padding_x,
         .opts.padding_y        = padding_y,
         .opts.cursor_width     = cursor_width,
@@ -356,6 +387,7 @@ Menu menu_new(
         .opts.scrollbar_width  = scrollbar_width,
         .opts.scrollbar_height = scrollbar_height,
         .opts.font             = font,
+        .opts.cursorbar_width  = cursorbar_width,
         .matches               = matches,
         .cursor                = 0,
         .scroll_offset         = 0,
