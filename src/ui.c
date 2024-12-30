@@ -146,17 +146,19 @@ static void render_ui(Menu *m) {
     }
 
     /* Scrollbar */
-    float current = (float) m->cursor / m->matches.sorted_len;
-    int offsety   = m->opts.padding_y + string_height;
-    int y         = current * (m->window_height - m->opts.scrollbar_height - offsety);
-    XftDrawRect(
-        m->x.xft_drawctx,
-        &m->opts.color_strings,
-        m->window_width - m->opts.scrollbar_width,
-        offsety + y,
-        m->opts.scrollbar_width,
-        m->opts.scrollbar_height
-    );
+    if (m->opts.show_scrollbar) {
+        float current = (float) m->cursor / m->matches.sorted_len;
+        int offsety   = m->opts.padding_y + string_height;
+        int y         = current * (m->window_height - m->opts.scrollbar_height - offsety);
+        XftDrawRect(
+            m->x.xft_drawctx,
+            &m->opts.color_strings,
+            m->window_width - m->opts.scrollbar_width,
+            offsety + y,
+            m->opts.scrollbar_width,
+            m->opts.scrollbar_height
+        );
+    }
 
 
 }
@@ -312,7 +314,8 @@ Menu menu_new(
     float width_ratio,
     bool wrapping,
     bool case_sensitive,
-    bool scroll_next_page
+    bool scroll_next_page,
+    bool show_scrollbar
 ) {
 
     Display *dpy  = XOpenDisplay(NULL);
@@ -380,6 +383,7 @@ Menu menu_new(
         .opts.wrapping          = wrapping,
         .opts.case_sensitive    = case_sensitive,
         .opts.scroll_next_page  = scroll_next_page,
+        .opts.show_scrollbar    = show_scrollbar,
         .opts.padding_x         = padding_x,
         .opts.padding_y         = padding_y,
         .opts.cursor_width      = cursor_width,

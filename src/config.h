@@ -28,4 +28,5 @@ static float width_ratio = 0.17f;
 
 static bool wrapping         = true,
             case_sensitive   = false,
-            scroll_next_page = false;
+            scroll_next_page = false,
+            show_scrollbar   = true;

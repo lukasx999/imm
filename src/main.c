@@ -96,7 +96,8 @@ int main(void) {
         width_ratio,
         wrapping,
         case_sensitive,
-        scroll_next_page
+        scroll_next_page,
+        show_scrollbar
     );
 
     menu_run(&menu);

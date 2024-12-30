@@ -34,6 +34,7 @@ typedef struct {
         bool wrapping;
         bool case_sensitive;
         bool scroll_next_page;
+        bool show_scrollbar;
         int text_spacing;
         int padding_x, padding_y;
         int cursor_width;
@@ -75,7 +76,8 @@ extern Menu menu_new(
     float ratio,
     bool wrapping,
     bool case_sensitive,
-    bool scroll_next_page
+    bool scroll_next_page,
+    bool show_scrollbar
 );
 extern void menu_destroy(Menu *menu);
 extern void menu_run(Menu *menu);
