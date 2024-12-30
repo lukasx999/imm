@@ -20,13 +20,13 @@
 static unsigned short get_font_height(const Menu *menu) {
     XGlyphInfo extents = { 0 };
     // using 'X' because its the tallest character
-    XftTextExtents8(menu->x.dpy, menu->font, (FcChar8 *) "X", strlen("X"), &extents);
+    XftTextExtents8(menu->x.dpy, menu->opts.font, (FcChar8 *) "X", strlen("X"), &extents);
     return extents.height;
 }
 
 static unsigned short get_font_width(const Menu *menu, const char *s) {
     XGlyphInfo extents = { 0 };
-    XftTextExtents8(menu->x.dpy, menu->font, (FcChar8 *) s, strlen(s), &extents);
+    XftTextExtents8(menu->x.dpy, menu->opts.font, (FcChar8 *) s, strlen(s), &extents);
     return extents.width;
 }
 
@@ -39,7 +39,7 @@ static unsigned long get_color(Display *dpy, Colormap cmap, const char *color) {
 
 static void draw_string(const Menu *menu, int x, int y, const char *str, const XftColor *color) {
     XftDrawStringUtf8(
-        menu->x.xft_drawctx, color, menu->font,
+        menu->x.xft_drawctx, color, menu->opts.font,
         x, y,
         (FcChar8 *) str, strlen(str)
     );
@@ -50,12 +50,16 @@ static void render_ui(Menu *m) {
     int string_height   = get_font_height(m) * 2 + m->opts.text_spacing;
     int max_vis_entries = m->window_height / string_height - 1;
 
-    // Cursor bounds checking
+    // Adjust scroll offset when cursor leaves the screen
     if (m->cursor - m->scroll_offset >= max_vis_entries)
         m->scroll_offset += max_vis_entries;
     if (m->cursor - m->scroll_offset < 0)
         m->scroll_offset -= max_vis_entries;
 
+    // prevent cursor from clipping out of bounds when the amount of matches is reduced
+    // TODO: refactor
+    if ((size_t) m->cursor >= m->matches.sorted_len)
+        m->cursor = m->scroll_offset = 0;
 
 
     /* Cursor */
@@ -98,6 +102,17 @@ static void render_ui(Menu *m) {
         const char *item = matches_get(&m->matches, i + m->scroll_offset);
         if (item == NULL)
             break;
+
+        /* Truncating long strings */
+        char buf[BUFSIZ] = { 0 };
+        if (get_font_width(m, item) > m->window_width - m->opts.padding_x) {
+            const char *truncate_symbol = "...";
+            float mean_charsize = (float) get_font_width(m, item) / strlen(item);
+            size_t last_char = (m->window_width - m->opts.padding_x) / mean_charsize;
+            strncpy(buf, item, BUFSIZ);
+            strcpy(buf+last_char-strlen(truncate_symbol)-1, truncate_symbol);
+            item = buf;
+        }
 
         int y = string_height * i;
         draw_string(
@@ -234,10 +249,6 @@ static void handle_event(Menu *m, XEvent *event) {
             handle_keypress(m, &event->xkey);
         } break;
 
-        case MotionNotify: {
-            // handle_pointer_motion(menu, &event->xmotion);
-        } break;
-
         case Expose:
         case KeyRelease: break;
 
@@ -270,7 +281,8 @@ Menu menu_new(
     int scrollbar_width,
     int scrollbar_height,
     float width_ratio,
-    bool wrapping
+    bool wrapping,
+    bool case_sensitive
 ) {
 
     Display *dpy  = XOpenDisplay(NULL);
@@ -291,7 +303,7 @@ Menu menu_new(
         .override_redirect = true,
         .background_pixel  = get_color(dpy, cmap, color_bg),
         .border_pixel      = get_color(dpy, cmap, color_border),
-        .event_mask        = KeyPressMask | PointerMotionMask | ExposureMask,
+        .event_mask        = KeyPressMask | ExposureMask,
     };
 
     XClassHint class_hint = { "xmenu", "xmenu" };
@@ -336,6 +348,7 @@ Menu menu_new(
         .x.vis                 = vis,
         .x.xft_drawctx         = xft_draw_ctx,
         .opts.wrapping         = wrapping,
+        .opts.case_sensitive   = case_sensitive,
         .opts.padding_x        = padding_x,
         .opts.padding_y        = padding_y,
         .opts.cursor_width     = cursor_width,
@@ -345,6 +358,7 @@ Menu menu_new(
         .opts.color_hl         = xft_color_hl,
         .opts.scrollbar_width  = scrollbar_width,
         .opts.scrollbar_height = scrollbar_height,
+        .opts.font             = font,
         .matches               = matches,
         .cursor                = 0,
         .scroll_offset         = 0,
@@ -352,13 +366,8 @@ Menu menu_new(
         .quit                  = false,
         .window_height         = height,
         .window_width          = width,
-        .font                  = font,
     };
 
-}
-
-void menu_destroy(Menu *menu) {
-    XCloseDisplay(menu->x.dpy);
 }
 
 void menu_run(Menu *m) {
@@ -369,11 +378,7 @@ void menu_run(Menu *m) {
         if (XPending(m->x.dpy)) {
             XNextEvent(m->x.dpy, &event);
             XClearWindow(m->x.dpy, m->x.win);
-            matches_sort(&m->matches, m->query);
-
-            // prevent cursor from clipping out of bounds when the amount of matches is reduced
-            if ((size_t) m->cursor >= m->matches.sorted_len)
-                m->cursor = m->scroll_offset = 0;
+            matches_sort(&m->matches, m->query, m->opts.case_sensitive);
 
             XGrabKeyboard(
                 m->x.dpy,
@@ -384,8 +389,8 @@ void menu_run(Menu *m) {
                 CurrentTime
             );
 
-            render_ui(m);
             handle_event(m, &event);
+            render_ui(m);
 
         } else {
             // const int fps = 60;
@@ -393,4 +398,8 @@ void menu_run(Menu *m) {
         }
 
     }
+}
+
+void menu_destroy(Menu *menu) {
+    XCloseDisplay(menu->x.dpy);
 }

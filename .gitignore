@@ -2,6 +2,7 @@ out
 dmenu
 xlib_manual
 build
+xmenu
 # Prerequisites
 *.d
 

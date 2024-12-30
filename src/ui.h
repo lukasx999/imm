@@ -32,10 +32,12 @@ typedef struct {
 
     struct {
         bool wrapping;
+        bool case_sensitive;
         int text_spacing;
         int padding_x, padding_y;
         int cursor_width;
         int scrollbar_width, scrollbar_height;
+        XftFont *font;
         XftColor color_strings, color_query, color_hl;
     } opts;
 
@@ -45,7 +47,6 @@ typedef struct {
     int cursor;
     int scroll_offset;
     bool quit;
-    XftFont *font;
 
 } Menu;
 
@@ -67,7 +68,8 @@ extern Menu menu_new(
     int scrollbar_width,
     int scrollbar_height,
     float ratio,
-    bool wrapping
+    bool wrapping,
+    bool case_sensitive
 );
 extern void menu_destroy(Menu *menu);
 extern void menu_run(Menu *menu);

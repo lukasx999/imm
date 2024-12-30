@@ -1,9 +1,12 @@
+#include <ctype.h>
+#include <fontconfig/fontconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <assert.h>
 #include <string.h>
+#include <strings.h>
 #include <pthread.h>
 
 #include "./sort.h"
@@ -20,17 +23,25 @@ Matches matches_init(const char **strings, size_t strings_len) {
     };
 }
 
-void matches_sort(Matches *m, const char *query) {
+
+void matches_sort(Matches *m, const char *query, bool case_sensitive) {
     memset(m->sorted, 0, m->strings_len);
     size_t sorted_len = 0;
 
     for (size_t i=0; i < m->strings_len; ++i) {
         const char *s = m->strings[i];
-        if (!strncmp(s, query, strlen(query)))
+
+        bool does_match = case_sensitive
+            ? !strncmp(s, query, strlen(query))
+            : !strncasecmp(s, query, strlen(query));
+
+        if (does_match)
             m->sorted[sorted_len++] = s;
+
     }
     m->sorted_len = sorted_len;
 }
+
 
 void matches_destroy(Matches *m) {
     free(m->sorted);

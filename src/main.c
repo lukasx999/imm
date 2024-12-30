@@ -92,7 +92,8 @@ int main(void) {
         scrollbar_width,
         scrollbar_height,
         width_ratio,
-        wrapping
+        wrapping,
+        case_sensitive
     );
 
     menu_run(&menu);
