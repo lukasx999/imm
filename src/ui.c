@@ -259,9 +259,6 @@ static void handle_event(Menu *m, XEvent *event) {
     }
 }
 
-
-
-
 Menu menu_new(
     const char **strings,
     size_t strings_len,
