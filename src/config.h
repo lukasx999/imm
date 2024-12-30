@@ -10,7 +10,8 @@ static const char *colors[] = {
 };
 
 static const char *font_name = "JetBrainsMono Nerd Font:size=20";
-// static const char *font_name = "Roboto:size=14";
+// static const char *font_name = "Roboto:size=20";
+static const char *truncation_symbol = "...";
 
 static int position_x        = 0,
            position_y        = 0,
@@ -19,7 +20,7 @@ static int position_x        = 0,
            cursor_width      = 2,
            cursorbar_width   = 2,
            text_spacing      = 10,
-           border_width      = 1,
+           border_width      = 5,
            scrollbar_width   = 5,
            scrollbar_height  = 100;
 

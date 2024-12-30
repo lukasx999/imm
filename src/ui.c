@@ -12,6 +12,7 @@
 #include <X11/Xutil.h>
 #include <X11/Xft/Xft.h>
 #include <X11/extensions/Xdbe.h>
+#include <X11/extensions/XTest.h>
 
 #include "./ui.h"
 #include "./sort.h"
@@ -50,14 +51,12 @@ static void render_ui(Menu *m) {
     int string_height   = get_font_height(m) * 2 + m->opts.text_spacing;
     int max_vis_entries = m->window_height / string_height - 1;
 
-    int scroll_diff = m->opts.scroll_next_page ? max_vis_entries : 1;
-
     // Adjust scroll offset when cursor leaves the screen
+    int scroll_diff = m->opts.scroll_next_page ? max_vis_entries : 1;
     if (m->cursor - m->scroll_offset >= max_vis_entries)
         m->scroll_offset += scroll_diff;
     if (m->cursor - m->scroll_offset < 0)
         m->scroll_offset -= scroll_diff;
-
 
 
     // prevent cursor from clipping out of bounds when the amount of matches is reduced
@@ -114,30 +113,32 @@ static void render_ui(Menu *m) {
     }
 
 
-
-
-
     /* Matches */
     for (size_t i=0; i < (size_t) max_vis_entries; ++i) {
         const char *item = matches_get(&m->matches, i + m->scroll_offset);
         if (item == NULL)
             break;
 
+        int offset_x = m->opts.padding_x * 2;
+
         /* Truncating long strings */
         char buf[BUFSIZ] = { 0 };
-        if (get_font_width(m, item) > m->window_width - m->opts.padding_x) {
-            const char *truncate_symbol = "...";
+        bool is_too_long = get_font_width(m, item) > m->window_width - (offset_x + m->opts.padding_x);
+        if (is_too_long) {
             float mean_charsize = (float) get_font_width(m, item) / strlen(item);
             size_t last_char = (m->window_width - m->opts.padding_x) / mean_charsize;
             strncpy(buf, item, BUFSIZ);
-            strcpy(buf+last_char-strlen(truncate_symbol)-1, truncate_symbol);
+            strcpy(
+                buf + last_char - strlen(m->opts.truncation_symbol) - 2,
+                m->opts.truncation_symbol
+            );
             item = buf;
         }
 
         int y = string_height * i;
         draw_string(
             m,
-            m->opts.padding_x * 2,
+            offset_x,
             query_offset_y + string_height + y,
             item,
             &m->opts.color_strings
@@ -192,6 +193,7 @@ static void cursor_dec(Menu *m) {
 static void query_clear(Menu *m) {
     m->cursor = 0;
     memset(m->query, 0, QUERY_MAXLEN);
+    m->scroll_offset = 0;
 }
 
 static void delchar(Menu *m) {
@@ -296,6 +298,7 @@ Menu menu_new(
     const char *color_strings,
     const char *color_query,
     const char *font_name,
+    const char *truncation_symbol,
     int position_x,
     int position_y,
     int padding_x,
@@ -365,36 +368,37 @@ Menu menu_new(
     Matches matches = matches_init(strings, strings_len);
 
     return (Menu) {
-        .x.dpy                 = dpy,
-        .x.root                = root,
-        .x.scr_num             = scr_num,
-        .x.scr                 = scr,
-        .x.cmap                = cmap,
-        .x.gc                  = gc,
-        .x.win                 = win,
-        .x.vis                 = vis,
-        .x.xft_drawctx         = xft_draw_ctx,
-        .opts.wrapping         = wrapping,
-        .opts.case_sensitive   = case_sensitive,
-        .opts.scroll_next_page = scroll_next_page,
-        .opts.padding_x        = padding_x,
-        .opts.padding_y        = padding_y,
-        .opts.cursor_width     = cursor_width,
-        .opts.text_spacing     = text_spacing,
-        .opts.color_strings    = xft_color_strings,
-        .opts.color_query      = xft_color_query,
-        .opts.color_hl         = xft_color_hl,
-        .opts.scrollbar_width  = scrollbar_width,
-        .opts.scrollbar_height = scrollbar_height,
-        .opts.font             = font,
-        .opts.cursorbar_width  = cursorbar_width,
-        .matches               = matches,
-        .cursor                = 0,
-        .scroll_offset         = 0,
-        .query                 = { 0 },
-        .quit                  = false,
-        .window_height         = height,
-        .window_width          = width,
+        .x.dpy                  = dpy,
+        .x.root                 = root,
+        .x.scr_num              = scr_num,
+        .x.scr                  = scr,
+        .x.cmap                 = cmap,
+        .x.gc                   = gc,
+        .x.win                  = win,
+        .x.vis                  = vis,
+        .x.xft_drawctx          = xft_draw_ctx,
+        .opts.wrapping          = wrapping,
+        .opts.case_sensitive    = case_sensitive,
+        .opts.scroll_next_page  = scroll_next_page,
+        .opts.padding_x         = padding_x,
+        .opts.padding_y         = padding_y,
+        .opts.cursor_width      = cursor_width,
+        .opts.text_spacing      = text_spacing,
+        .opts.color_strings     = xft_color_strings,
+        .opts.color_query       = xft_color_query,
+        .opts.color_hl          = xft_color_hl,
+        .opts.scrollbar_width   = scrollbar_width,
+        .opts.scrollbar_height  = scrollbar_height,
+        .opts.font              = font,
+        .opts.cursorbar_width   = cursorbar_width,
+        .opts.truncation_symbol = truncation_symbol,
+        .matches                = matches,
+        .cursor                 = 0,
+        .scroll_offset          = 0,
+        .query                  = { 0 },
+        .quit                   = false,
+        .window_height          = height,
+        .window_width           = width,
     };
 
 }

@@ -5,7 +5,9 @@ DEPS=ui.h sort.h config.h
 FILES=main.o ui.o sort.o
 BIN=xmenu
 
-all: $(FILES) $(DEPS)
+all: xmenu
+
+xmenu: $(FILES) $(DEPS)
 	@$(CC) $(CFLAGS) $(LIBS) $^ -o $(BIN)
 	@echo CC $^
 
@@ -16,4 +18,11 @@ all: $(FILES) $(DEPS)
 clean:
 	rm *.o $(BIN)
 
-.PHONY: clean
+install: all
+	cp -f xmenu ~/.opt
+	cp -f xmenu_run.sh ~/.opt/xmenu_run
+
+uninstall:
+	rm -f ~/.opt/xmenu ~/.opt/xmenu_run
+
+.PHONY: clean install uninstall

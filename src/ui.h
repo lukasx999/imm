@@ -41,6 +41,7 @@ typedef struct {
         int scrollbar_width, scrollbar_height;
         XftFont *font;
         XftColor color_strings, color_query, color_hl;
+        const char *truncation_symbol;
     } opts;
 
     const int window_width, window_height;
@@ -60,6 +61,7 @@ extern Menu menu_new(
     const char *color_strings,
     const char *color_query,
     const char *font_name,
+    const char *truncation_symbol,
     int position_x,
     int position_y,
     int padding_x,
