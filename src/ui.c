@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -31,131 +30,12 @@ static unsigned short get_font_width(const Menu *menu, const char *s) {
     return extents.width;
 }
 
-
-
 static unsigned long get_color(Display *dpy, Colormap cmap, const char *color) {
     XColor xcolor = { 0 };
     XParseColor(dpy, cmap, color, &xcolor);
     XAllocColor(dpy, cmap, &xcolor);
     return xcolor.pixel;
 }
-
-
-
-Menu menu_new(
-    const char **strings,
-    size_t strings_len,
-    const char *color_bg,
-    const char *color_hl,
-    const char *color_border,
-    const char *color_strings,
-    const char *color_query,
-    const char *font_name,
-    int position_x,
-    int position_y,
-    int padding_x,
-    int padding_y,
-    int cursor_width,
-    int text_spacing,
-    int border_width,
-    int scrollbar_width,
-    int scrollbar_height,
-    float width_ratio,
-    bool wrapping
-) {
-
-    Display *dpy  = XOpenDisplay(NULL);
-    assert(dpy != NULL);
-    Window root   = XDefaultRootWindow(dpy);
-    int scr_num   = XDefaultScreen(dpy);
-    Colormap cmap = XDefaultColormap(dpy, scr_num);
-    GC gc         = XCreateGC(dpy, root, 0, NULL);
-    Screen *scr   = XScreenOfDisplay(dpy, scr_num);
-    Visual *vis   = XDefaultVisual(dpy, scr_num);
-
-    /* Init Window */
-    int width  = width_ratio * XWidthOfScreen(scr) - border_width*2;
-    int height = XHeightOfScreen(scr) - border_width*2;
-
-    int valuemask = CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWEventMask;
-    XSetWindowAttributes winattr = {
-        .override_redirect = true,
-        .background_pixel  = get_color(dpy, cmap, color_bg),
-        .border_pixel      = get_color(dpy, cmap, color_border),
-        .event_mask        = KeyPressMask | PointerMotionMask | ExposureMask,
-    };
-
-    XClassHint class_hint = { "xmenu", "xmenu" };
-
-    Window win = XCreateWindow(
-        dpy, root,
-        position_x, position_y,
-        width, height, border_width,
-        CopyFromParent,
-        CopyFromParent,
-        CopyFromParent,
-        valuemask,
-        &winattr
-    );
-
-    XSetClassHint(dpy, win, &class_hint);
-    XMapRaised(dpy, win);
-    /* ----------- */
-
-    /* Init Xft */
-    XftFont *font         = XftFontOpenName(dpy, scr_num, font_name);
-    XftDraw *xft_draw_ctx = XftDrawCreate(dpy, win, vis, cmap);
-
-    XftColor xft_color_strings = { 0 };
-    XftColor xft_color_query   = { 0 };
-    XftColor xft_color_hl      = { 0 };
-    XftColorAllocName(dpy, vis, cmap, color_strings, &xft_color_strings);
-    XftColorAllocName(dpy, vis, cmap, color_query,   &xft_color_query);
-    XftColorAllocName(dpy, vis, cmap, color_hl,      &xft_color_hl);
-    /* -------- */
-
-    Matches matches = matches_init(strings, strings_len);
-
-
-    Menu menu = {
-        .x.dpy                 = dpy,
-        .x.root                = root,
-        .x.scr_num             = scr_num,
-        .x.scr                 = scr,
-        .x.cmap                = cmap,
-        .x.gc                  = gc,
-        .x.win                 = win,
-        .x.vis                 = vis,
-        .x.xft_drawctx         = xft_draw_ctx,
-        .opts.wrapping         = wrapping,
-        .opts.padding_x        = padding_x,
-        .opts.padding_y        = padding_y,
-        .opts.cursor_width     = cursor_width,
-        .opts.text_spacing     = text_spacing,
-        .opts.color_strings    = xft_color_strings,
-        .opts.color_query      = xft_color_query,
-        .opts.color_hl         = xft_color_hl,
-        .opts.scrollbar_width  = scrollbar_width,
-        .opts.scrollbar_height = scrollbar_height,
-        .matches               = matches,
-        .cursor                = 0,
-        .scroll_offset         = 0,
-        .query                 = { 0 },
-        .quit                  = false,
-        .window_height         = height,
-        .window_width          = width,
-        .font                  = font,
-    };
-
-    return menu;
-
-}
-
-void menu_destroy(Menu *menu) {
-    XCloseDisplay(menu->x.dpy);
-}
-
-
 
 static void draw_string(const Menu *menu, int x, int y, const char *str, const XftColor *color) {
     XftDrawStringUtf8(
@@ -165,18 +45,18 @@ static void draw_string(const Menu *menu, int x, int y, const char *str, const X
     );
 }
 
-
-
-
 static void render_ui(Menu *m) {
 
     int string_height   = get_font_height(m) * 2 + m->opts.text_spacing;
     int max_vis_entries = m->window_height / string_height - 1;
 
+    // Cursor bounds checking
     if (m->cursor - m->scroll_offset >= max_vis_entries)
         m->scroll_offset += max_vis_entries;
     if (m->cursor - m->scroll_offset < 0)
         m->scroll_offset -= max_vis_entries;
+
+
 
     /* Cursor */
     XftDrawRect(
@@ -246,9 +126,6 @@ static void render_ui(Menu *m) {
 
 }
 
-
-
-
 static void cursor_inc(Menu *m) {
     m->cursor++;
     size_t index_max = m->matches.sorted_len-1;
@@ -260,7 +137,6 @@ static void cursor_inc(Menu *m) {
     }
 
 }
-
 
 static void cursor_dec(Menu *m) {
     // TODO: refactor
@@ -351,39 +227,6 @@ static void handle_keypress(Menu *m, XKeyEvent *key_event) {
 
 }
 
-
-static void handle_pointer_motion(Menu *m, XMotionEvent *motion_event) {
-    // TODO: this
-
-    int x = motion_event->x;
-    int y = motion_event->y;
-
-    int offset_x = 15;
-    int string_height = get_font_height(m)*2 + m->opts.text_spacing;
-
-    for (size_t i=0; i < m->matches.sorted_len; ++i) {
-
-        bool match_x = x >= offset_x && x <= offset_x + m->window_width;
-        int yo = string_height + string_height * i;
-        bool match_y = y >= yo && y <= yo + get_font_height(m)*2;
-
-        if (match_x && match_y) {
-            XClearWindow(m->x.dpy, m->x.win);
-            render_ui(m);
-            XftDrawRect(
-                m->x.xft_drawctx,
-                &m->opts.color_hl,
-                offset_x,
-                string_height + string_height * i,
-                m->window_width,
-                get_font_height(m)*2
-            );
-        }
-
-    }
-
-}
-
 static void handle_event(Menu *m, XEvent *event) {
     switch (event->type) {
 
@@ -405,6 +248,119 @@ static void handle_event(Menu *m, XEvent *event) {
     }
 }
 
+
+
+
+Menu menu_new(
+    const char **strings,
+    size_t strings_len,
+    const char *color_bg,
+    const char *color_hl,
+    const char *color_border,
+    const char *color_strings,
+    const char *color_query,
+    const char *font_name,
+    int position_x,
+    int position_y,
+    int padding_x,
+    int padding_y,
+    int cursor_width,
+    int text_spacing,
+    int border_width,
+    int scrollbar_width,
+    int scrollbar_height,
+    float width_ratio,
+    bool wrapping
+) {
+
+    Display *dpy  = XOpenDisplay(NULL);
+    assert(dpy != NULL);
+    Window root   = XDefaultRootWindow(dpy);
+    int scr_num   = XDefaultScreen(dpy);
+    Colormap cmap = XDefaultColormap(dpy, scr_num);
+    GC gc         = XCreateGC(dpy, root, 0, NULL);
+    Screen *scr   = XScreenOfDisplay(dpy, scr_num);
+    Visual *vis   = XDefaultVisual(dpy, scr_num);
+
+    /* Init Window */
+    int width  = width_ratio * XWidthOfScreen(scr) - border_width*2;
+    int height = XHeightOfScreen(scr) - border_width*2;
+
+    int valuemask = CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWEventMask;
+    XSetWindowAttributes winattr = {
+        .override_redirect = true,
+        .background_pixel  = get_color(dpy, cmap, color_bg),
+        .border_pixel      = get_color(dpy, cmap, color_border),
+        .event_mask        = KeyPressMask | PointerMotionMask | ExposureMask,
+    };
+
+    XClassHint class_hint = { "xmenu", "xmenu" };
+
+    Window win = XCreateWindow(
+        dpy, root,
+        position_x, position_y,
+        width, height, border_width,
+        CopyFromParent,
+        CopyFromParent,
+        CopyFromParent,
+        valuemask,
+        &winattr
+    );
+
+    XSetClassHint(dpy, win, &class_hint);
+    XMapRaised(dpy, win);
+    /* ----------- */
+
+    /* Init Xft */
+    XftFont *font         = XftFontOpenName(dpy, scr_num, font_name);
+    XftDraw *xft_draw_ctx = XftDrawCreate(dpy, win, vis, cmap);
+
+    XftColor xft_color_strings = { 0 };
+    XftColor xft_color_query   = { 0 };
+    XftColor xft_color_hl      = { 0 };
+    XftColorAllocName(dpy, vis, cmap, color_strings, &xft_color_strings);
+    XftColorAllocName(dpy, vis, cmap, color_query,   &xft_color_query);
+    XftColorAllocName(dpy, vis, cmap, color_hl,      &xft_color_hl);
+    /* -------- */
+
+    Matches matches = matches_init(strings, strings_len);
+
+    return (Menu) {
+        .x.dpy                 = dpy,
+        .x.root                = root,
+        .x.scr_num             = scr_num,
+        .x.scr                 = scr,
+        .x.cmap                = cmap,
+        .x.gc                  = gc,
+        .x.win                 = win,
+        .x.vis                 = vis,
+        .x.xft_drawctx         = xft_draw_ctx,
+        .opts.wrapping         = wrapping,
+        .opts.padding_x        = padding_x,
+        .opts.padding_y        = padding_y,
+        .opts.cursor_width     = cursor_width,
+        .opts.text_spacing     = text_spacing,
+        .opts.color_strings    = xft_color_strings,
+        .opts.color_query      = xft_color_query,
+        .opts.color_hl         = xft_color_hl,
+        .opts.scrollbar_width  = scrollbar_width,
+        .opts.scrollbar_height = scrollbar_height,
+        .matches               = matches,
+        .cursor                = 0,
+        .scroll_offset         = 0,
+        .query                 = { 0 },
+        .quit                  = false,
+        .window_height         = height,
+        .window_width          = width,
+        .font                  = font,
+    };
+
+}
+
+void menu_destroy(Menu *menu) {
+    XCloseDisplay(menu->x.dpy);
+}
+
 void menu_run(Menu *m) {
 
     XEvent event = { 0 };
@@ -419,7 +375,6 @@ void menu_run(Menu *m) {
             if ((size_t) m->cursor >= m->matches.sorted_len)
                 m->cursor = m->scroll_offset = 0;
 
-
             XGrabKeyboard(
                 m->x.dpy,
                 m->x.root,
@@ -433,15 +388,9 @@ void menu_run(Menu *m) {
             handle_event(m, &event);
 
         } else {
-
             // const int fps = 60;
             // usleep((1.0f/fps) * 10e6);
-
         }
-
-
 
     }
 }
-
-
