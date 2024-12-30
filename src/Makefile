@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -ggdb -std=c99 -pedantic `pkg-config --cflags xft` -O3
+CFLAGS=-Wall -Wextra -ggdb -std=c99 -pedantic `pkg-config --cflags xft` -O3 -L/usr/lib/x86_64-linux-gnu
 LIBS=-lX11 `pkg-config --libs xft` -lm -lXext
 DEPS=ui.h sort.h config.h
 FILES=main.o ui.o sort.o
