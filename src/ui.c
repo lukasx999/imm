@@ -48,17 +48,23 @@ static void draw_string(const Menu *menu, int x, int y, const char *str, const X
     );
 }
 
+
+static int get_string_height(const Menu *m) {
+    return get_font_height(m) * 2 + m->opts.text_spacing;
+}
+
 static void render_ui(Menu *m) {
 
-    int string_height   = get_font_height(m) * 2 + m->opts.text_spacing;
+    int string_height = get_string_height(m);
     int max_vis_entries = m->window_height / string_height - 1;
 
     // Adjust scroll offset when cursor leaves the screen
-    int scroll_diff = m->opts.scroll_next_page ? max_vis_entries : 1;
+    int scroll_step = m->opts.scroll_next_page ? max_vis_entries : 1;
+
     if (m->cursor - m->scroll_offset >= max_vis_entries)
-        m->scroll_offset += scroll_diff;
+        m->scroll_offset += scroll_step;
     if (m->cursor - m->scroll_offset < 0)
-        m->scroll_offset -= scroll_diff;
+        m->scroll_offset -= scroll_step;
 
 
     // prevent cursor from clipping out of bounds when the amount of matches is reduced
@@ -178,8 +184,7 @@ static void cursor_inc(Menu *m) {
 }
 
 static void cursor_dec(Menu *m) {
-    // TODO: refactor
-    int string_height = get_font_height(m)*2 + m->opts.text_spacing;
+    int string_height = get_string_height(m);
     int max_vis_entries = m->window_height / string_height - 1;
     int max_offset = (m->matches.sorted_len / max_vis_entries) * max_vis_entries;
 
@@ -223,7 +228,6 @@ static void select_entry(Menu *m) {
 }
 
 
-// TODO: funcptr table for handlers
 static void handle_keypress(Menu *m, XKeyEvent *key_event) {
     KeySym sym     = XLookupKeysym(key_event, 1);
     uint32_t state = key_event->state;
