@@ -23,7 +23,7 @@
 ### Usage
 
 XMenu works similar to other run-launchers like fzf and dmenu.\
-It takes input as newline seperated strings from `stdin`, gives you a prompt, then writes the selected entry back to `stdout`.
+It takes newline delimited strings from `stdin` as input, gives you a prompt, then writes the selected entry back to `stdout`.
 
 **Examples:**
 
