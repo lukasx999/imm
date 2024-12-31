@@ -1,25 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <assert.h>
-#include <string.h>
-
-#include <X11/Xlib.h>
-#include <X11/X.h>
-#include <X11/Xutil.h>
-
 #include "./ui.h"
-
 
 #ifdef CFG
 enum { COLOR_BG, COLOR_HL, COLOR_BORDER, COLOR_STRINGS, COLOR_QUERY };
 #else
-
 #include "./config.h"
-
-
-
 
 
 
@@ -29,6 +13,7 @@ static char **get_strings(size_t *out_strcount, size_t *out_capacity) {
     size_t size     = 0;
     size_t capacity = 5;
     char **items    = malloc(capacity * sizeof(char*));
+
     for (size_t i=0; i < capacity; ++i) {
         items[i] = malloc(BUFSIZ * sizeof(char));
         memset(items[i], '\0', BUFSIZ);
@@ -70,8 +55,9 @@ static void free_strings(char **strings, size_t capacity) {
 
 int main(void) {
 
-    size_t strings_len = 0, strings_capacity = 0;
-    char **strings  = get_strings(&strings_len, &strings_capacity);
+    size_t strings_len      = 0;
+    size_t strings_capacity = 0;
+    char **strings          = get_strings(&strings_len, &strings_capacity);
 
     Menu menu = menu_new(
         (const char **) strings,

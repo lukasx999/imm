@@ -6,7 +6,6 @@
 #include <stdbool.h>
 
 #include <X11/Xlib.h>
-#include <X11/X.h>
 #include <X11/Xft/Xft.h>
 
 #include "./sort.h"
@@ -28,7 +27,7 @@ typedef struct {
         Window win;
         Visual *vis;
         XftDraw *xft_drawctx;
-    } x;
+    } x; // Xlib handles
 
     struct {
         bool wrapping;
@@ -43,11 +42,12 @@ typedef struct {
         XftFont *font;
         XftColor color_strings, color_query, color_hl;
         const char *truncation_symbol;
-    } opts;
+    } opts; // User-defined configuration
 
+    /* State of the UI */
     const int window_width, window_height;
     Matches matches;
-    char query[QUERY_MAXLEN];
+    char query[QUERY_MAXLEN]; // Input field
     int cursor;
     int scroll_offset;
     bool quit;

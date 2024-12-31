@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -ggdb -std=c99 -pedantic `pkg-config --cflags xft` -O3
-LIBS=-lX11 `pkg-config --libs xft` -lm -lXext
+CFLAGS=-Wall -Wextra -ggdb -std=c99 -pedantic -O3 `pkg-config --cflags x11 xft`
+LIBS=-lm `pkg-config --libs x11 xft`
 DEPS=ui.h sort.h config.h
 FILES=main.o ui.o sort.o
 BIN=xmenu

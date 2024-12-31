@@ -9,21 +9,21 @@
 #include <unistd.h>
 #include <math.h>
 
-#include <X11/Xlib.h>
-#include <X11/X.h>
-#include <X11/Xutil.h>
-#include <X11/Xft/Xft.h>
-#include <X11/extensions/Xdbe.h>
-#include <X11/extensions/XTest.h>
-
 #include "./ui.h"
 #include "./sort.h"
 
 
+
 static unsigned short get_font_height(const Menu *menu) {
+    /*
+    The font height should be the same for all strings.
+    Otherwise a string like "qux", will have a different font height
+    than something like "FOO", which we dont want
+    Using 'X' because its one of the tallest characters
+    */
     XGlyphInfo extents = { 0 };
-    // using 'X' because its the tallest character
-    XftTextExtents8(menu->x.dpy, menu->opts.font, (FcChar8 *) "X", strlen("X"), &extents);
+    const char *c = "X";
+    XftTextExtents8(menu->x.dpy, menu->opts.font, (FcChar8 *) c, strlen(c), &extents);
     return extents.height;
 }
 
