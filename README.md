@@ -1,8 +1,6 @@
 # XMenu
 
-**A suckless-style run launcher**
-
-## Usage
+## A suckless-style run launcher
 
 ### Requirements
 
@@ -20,7 +18,7 @@
 
 > **NOTE:** `make install` will install `xmenu`, as well as `xmenu_run` to the system.
 
-### Running
+### Usage
 
 XMenu works similar to other run-launchers like fzf and dmenu.\
 It takes newline delimited strings from `stdin` as input, gives you a prompt, then writes the selected entry back to `stdout`.
@@ -37,7 +35,7 @@ baz
 ^D
 ```
 
-This gives it a lot of potential for usage with shell scripting.\
+This gives it a lot of potential for usage in shell scripts.\
 A script for using XMenu as a launcher for desktop applications can be found at `src/xmenu_run`.
 
 ## Configuration
