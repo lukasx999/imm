@@ -1,9 +1,11 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <assert.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <math.h>
 
@@ -409,7 +411,30 @@ Menu menu_new(
 
 }
 
+static void grab_keyboard(Menu *m) {
+    struct timespec ts = { .tv_sec = 0, .tv_nsec = 1e6 };
+
+    for (int i=0; i < 1000; ++i) {
+        int ret = XGrabKeyboard(
+            m->x.dpy,
+            m->x.root,
+            true,
+            GrabModeAsync,
+            GrabModeAsync,
+            CurrentTime
+        );
+        if (ret == GrabSuccess)
+            return;
+        nanosleep(&ts, NULL);
+    }
+
+    fprintf(stderr, "Failed to grab keyboard\n");
+    exit(1);
+}
+
 void menu_run(Menu *m) {
+
+    grab_keyboard(m);
 
     XEvent event = { 0 };
     while (!m->quit) {
@@ -418,15 +443,6 @@ void menu_run(Menu *m) {
             XNextEvent(m->x.dpy, &event);
             XClearWindow(m->x.dpy, m->x.win);
             matches_sort(&m->matches, m->query, m->opts.case_sensitive);
-
-            XGrabKeyboard(
-                m->x.dpy,
-                m->x.root,
-                true,
-                GrabModeAsync,
-                GrabModeAsync,
-                CurrentTime
-            );
 
             handle_event(m, &event);
             render_ui(m);
