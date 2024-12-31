@@ -37,8 +37,8 @@ baz
 ^D
 ```
 
-This gives it a lot of potential for usage with shell scripting.\\
-A script for using XMenu as a launcher for desktop applicatoins can be found at `src/xmenu_run`.\\
+This gives it a lot of potential for usage with shell scripting.\
+A script for using XMenu as a launcher for desktop applicatoins can be found at `src/xmenu_run`.\
 
 ## Keybindings
 
