@@ -220,6 +220,8 @@ static void select_entry(Menu *m) {
     m->quit = true;
 }
 
+
+// TODO: funcptr table for handlers
 static void handle_keypress(Menu *m, XKeyEvent *key_event) {
     KeySym sym     = XLookupKeysym(key_event, 1);
     uint32_t state = key_event->state;
