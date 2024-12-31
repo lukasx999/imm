@@ -2,7 +2,7 @@
 
 **A suckless-style run launcher**
 
-## Build instructions
+## Usage
 
 ### Requirements
 
@@ -20,7 +20,7 @@
 
 > **NOTE:** `make install` will install `xmenu`, as well as `xmenu_run` to the system.
 
-### Usage
+### Running
 
 XMenu works similar to other run-launchers like fzf and dmenu.\
 It takes newline delimited strings from `stdin` as input, gives you a prompt, then writes the selected entry back to `stdout`.
@@ -38,12 +38,18 @@ baz
 ```
 
 This gives it a lot of potential for usage with shell scripting.\
-A script for using XMenu as a launcher for desktop applicatoins can be found at `src/xmenu_run`.
+A script for using XMenu as a launcher for desktop applications can be found at `src/xmenu_run`.
+
+## Configuration
+
+Configuration is done by editing `src/config.h`, and rebuilding the source code.
 
 ## Keybindings
 
-- Move cursor up: `<C-p>, <C-k>, <Up>`
-- Move cursor down: `<C-n>, <C-j>, <Down>`
+The keybindings are generally inspired by GNU readline and Vim, aiming to satisfy both kinds of users.
+
+- Move cursor up: `<C-p>`, `<C-k>`, `<Up>`
+- Move cursor down: `<C-n>`, `<C-j>`, `<Down>`
 - Clear selection: `<C-u>`
-- Quit: `<ESC>, <C-c>`
+- Quit: `<ESC>`, `<C-c>`
 - Select entry: `<CR>`
