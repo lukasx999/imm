@@ -11,7 +11,6 @@ static const char *colors[] = {
 
 // static const char *font_name = "JetBrainsMono Nerd Font:size=20";
 static const char *font_name = "Roboto:size=18";
-static const char *truncation_symbol = "...";
 
 static int position_x        = 0,
            position_y        = 0,
@@ -29,4 +28,5 @@ static float width_ratio = 0.17f;
 static bool wrapping         = true,
             case_sensitive   = false,
             scroll_next_page = false,
-            show_scrollbar   = false;
+            show_scrollbar   = false,
+            show_animations  = true;

@@ -1,4 +1,5 @@
-#define _POSIX_C_SOURCE 200809L
+// #define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 500
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -12,6 +13,7 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xft/Xft.h>
+#include <X11/Xutil.h>
 
 #include "./ui.h"
 #include "./sort.h"
@@ -77,14 +79,16 @@ static void render_ui(Menu *m) {
 
 
     /* Cursor */
-    XftDrawRect(
-        m->x.xft_drawctx,
-        &m->opts.color_query,
-        m->opts.padding_x + get_font_width(m, m->query),
-        m->opts.padding_y,
-        m->opts.cursor_width,
-        get_font_height(m)*2
-    );
+    if (m->is_cursor_anim_done) {
+        XftDrawRect(
+            m->x.xft_drawctx,
+            &m->opts.color_query,
+            m->opts.padding_x + get_font_width(m, m->query),
+            m->opts.padding_y,
+            m->opts.cursor_width,
+            get_font_height(m)*2
+        );
+    }
 
     // NOTE: the anchor point of strings in Xlib is at the bottom left
 
@@ -97,6 +101,7 @@ static void render_ui(Menu *m) {
         m->query,
         &m->opts.color_query
     );
+
 
 
     if (m->matches.sorted_len != 0) {
@@ -137,12 +142,13 @@ static void render_ui(Menu *m) {
         char buf[BUFSIZ] = { 0 };
         bool is_too_long = get_font_width(m, item) > m->window_width - (offset_x + m->opts.padding_x);
         if (is_too_long) {
+            const char *truncation_symbol = "...";
             float mean_charsize = (float) get_font_width(m, item) / strlen(item);
             size_t last_char = (m->window_width - m->opts.padding_x) / mean_charsize;
-            strncpy(buf, item, BUFSIZ);
+            strncpy(buf, item, sizeof buf);
             strcpy(
-                buf + last_char - strlen(m->opts.truncation_symbol) - 2,
-                m->opts.truncation_symbol
+                buf + last_char - strlen(truncation_symbol) - 2,
+                truncation_symbol
             );
             item = buf;
         }
@@ -291,6 +297,7 @@ static void handle_event(Menu *m, XEvent *event) {
     switch (event->type) {
 
         case KeyPress: {
+            m->is_cursor_anim_done = true;
             handle_keypress(m, &event->xkey);
         } break;
 
@@ -325,6 +332,30 @@ static void grab_keyboard(Menu *m) {
     exit(1);
 }
 
+static void cursor_anim(Menu *m) {
+    static float anim_x = 0.0f;
+
+    if (m->is_cursor_anim_done)
+        return;
+
+    XClearWindow(m->x.dpy, m->x.win);
+    render_ui(m);
+
+    float i = m->window_width - m->window_width * sinf(anim_x);
+
+    XftDrawRect(
+        m->x.xft_drawctx,
+        &m->opts.color_query,
+        m->opts.padding_x + i,
+        m->opts.padding_y,
+        m->opts.cursor_width,
+        get_font_height(m)*2
+    );
+
+    anim_x += 0.03f;
+    m->is_cursor_anim_done = anim_x >= M_PI_2;
+
+}
 
 Menu menu_new(
     const char **strings,
@@ -335,7 +366,6 @@ Menu menu_new(
     const char *color_strings,
     const char *color_query,
     const char *font_name,
-    const char *truncation_symbol,
     int position_x,
     int position_y,
     int padding_x,
@@ -350,7 +380,8 @@ Menu menu_new(
     bool wrapping,
     bool case_sensitive,
     bool scroll_next_page,
-    bool show_scrollbar
+    bool show_scrollbar,
+    bool show_animations
 ) {
 
     Display *dpy  = XOpenDisplay(NULL);
@@ -434,7 +465,6 @@ Menu menu_new(
         .opts.scrollbar_height  = scrollbar_height,
         .opts.font              = font,
         .opts.cursorbar_width   = cursorbar_width,
-        .opts.truncation_symbol = truncation_symbol,
         .matches                = matches,
         .cursor                 = 0,
         .scroll_offset          = 0,
@@ -442,9 +472,11 @@ Menu menu_new(
         .quit                   = false,
         .window_height          = height,
         .window_width           = width,
+        .is_cursor_anim_done     = !show_animations,
     };
 
 }
+
 
 
 void menu_run(Menu *m) {
@@ -463,8 +495,10 @@ void menu_run(Menu *m) {
             render_ui(m);
 
         } else {
-            // const int fps = 60;
-            // usleep((1.0f/fps) * 10e6);
+            cursor_anim(m);
+
+            const int fps = 1000;
+            usleep((1.0f/fps) * 10e6);
         }
 
     }

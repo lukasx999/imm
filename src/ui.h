@@ -42,10 +42,10 @@ typedef struct {
         int scrollbar_width, scrollbar_height;
         XftFont *font;
         XftColor color_strings, color_query, color_hl;
-        const char *truncation_symbol;
     } opts; // User-defined configuration
 
     /* State of the UI */
+    bool is_cursor_anim_done;
     const int window_width, window_height;
     Matches matches;
     char query[QUERY_MAXLEN]; // Input field
@@ -63,7 +63,6 @@ extern Menu menu_new(
     const char *color_strings,
     const char *color_query,
     const char *font_name,
-    const char *truncation_symbol,
     int position_x,
     int position_y,
     int padding_x,
@@ -78,7 +77,8 @@ extern Menu menu_new(
     bool wrapping,
     bool case_sensitive,
     bool scroll_next_page,
-    bool show_scrollbar
+    bool show_scrollbar,
+    bool show_animations
 );
 extern void menu_destroy(Menu *menu);
 extern void menu_run(Menu *menu);

@@ -68,7 +68,6 @@ int main(void) {
         colors[COLOR_STRINGS],
         colors[COLOR_QUERY],
         font_name,
-        truncation_symbol,
         position_x,
         position_y,
         padding_x,
@@ -83,7 +82,8 @@ int main(void) {
         wrapping,
         case_sensitive,
         scroll_next_page,
-        show_scrollbar
+        show_scrollbar,
+        show_animations
     );
 
     menu_run(&menu);
