@@ -60,7 +60,6 @@ static int get_string_height(const Menu *m) {
 }
 
 static void render_ui(Menu *m) {
-
     int string_height = get_string_height(m);
     int max_vis_entries = m->window_height / string_height - 1;
 
@@ -101,6 +100,31 @@ static void render_ui(Menu *m) {
         m->query,
         &m->opts.color_query
     );
+
+
+    // TODO: dont show matchcount if colliding with query
+
+    /* Match count */
+    // if (m->is_cursor_anim_done && m->opts.show_matchcount) {
+    if (m->opts.show_matchcount) {
+        char matchcount[BUFSIZ] = { 0 };
+        snprintf(
+            matchcount,
+            sizeof matchcount,
+            "%lu/%lu",
+            m->matches.sorted_len,
+            m->matches.strings_len
+        );
+
+        draw_string(
+            m,
+            m->window_width - m->opts.padding_x - get_font_width(m, matchcount),
+            query_offset_y,
+            matchcount,
+            &m->opts.color_query
+        );
+    }
+
 
 
 
@@ -338,6 +362,7 @@ static void cursor_anim(Menu *m) {
     if (m->is_cursor_anim_done)
         return;
 
+    m->is_cursor_anim_done = anim_x >= M_PI_2;
     XClearWindow(m->x.dpy, m->x.win);
     render_ui(m);
 
@@ -353,7 +378,6 @@ static void cursor_anim(Menu *m) {
     );
 
     anim_x += 0.03f;
-    m->is_cursor_anim_done = anim_x >= M_PI_2;
 
 }
 
@@ -381,7 +405,8 @@ Menu menu_new(
     bool case_sensitive,
     bool scroll_next_page,
     bool show_scrollbar,
-    bool show_animations
+    bool show_animations,
+    bool show_matchcount
 ) {
 
     Display *dpy  = XOpenDisplay(NULL);
@@ -454,6 +479,7 @@ Menu menu_new(
         .opts.case_sensitive    = case_sensitive,
         .opts.scroll_next_page  = scroll_next_page,
         .opts.show_scrollbar    = show_scrollbar,
+        .opts.show_matchcount   = show_matchcount,
         .opts.padding_x         = padding_x,
         .opts.padding_y         = padding_y,
         .opts.cursor_width      = cursor_width,
@@ -476,8 +502,6 @@ Menu menu_new(
     };
 
 }
-
-
 
 void menu_run(Menu *m) {
 

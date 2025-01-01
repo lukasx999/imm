@@ -83,7 +83,8 @@ int main(void) {
         case_sensitive,
         scroll_next_page,
         show_scrollbar,
-        show_animations
+        show_animations,
+        show_matchcount
     );
 
     menu_run(&menu);
