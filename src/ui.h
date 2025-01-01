@@ -27,6 +27,7 @@ typedef struct {
         Window win;
         Visual *vis;
         XftDraw *xft_drawctx;
+        XIC xic;
     } x; // Xlib handles
 
     struct {

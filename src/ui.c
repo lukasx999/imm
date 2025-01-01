@@ -9,6 +9,10 @@
 #include <unistd.h>
 #include <math.h>
 
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/Xft/Xft.h>
+
 #include "./ui.h"
 #include "./sort.h"
 
@@ -29,7 +33,7 @@ static unsigned short get_font_height(const Menu *menu) {
 
 static unsigned short get_font_width(const Menu *menu, const char *s) {
     XGlyphInfo extents = { 0 };
-    XftTextExtents8(menu->x.dpy, menu->opts.font, (FcChar8 *) s, strlen(s), &extents);
+    XftTextExtentsUtf8(menu->x.dpy, menu->opts.font, (FcChar8 *) s, strlen(s), &extents);
     return extents.width;
 }
 
@@ -214,9 +218,10 @@ static void insert(Menu *m, XKeyEvent *key_event) {
     if (strlen(m->query) + 1 == QUERY_MAXLEN)
         return;
 
-    char buf[64] = { 0 };
-    XLookupString(key_event, buf, sizeof buf, NULL, NULL);
+    char buf[4] = { 0 };
+    Xutf8LookupString(m->x.xic, key_event, buf, sizeof buf, NULL, NULL);
     strcat(m->query, buf);
+
 }
 
 static void select_entry(Menu *m) {
@@ -299,6 +304,28 @@ static void handle_event(Menu *m, XEvent *event) {
     }
 }
 
+static void grab_keyboard(Menu *m) {
+    struct timespec ts = { .tv_sec = 0, .tv_nsec = 1e6 };
+
+    for (int i=0; i < 1000; ++i) {
+        int ret = XGrabKeyboard(
+            m->x.dpy,
+            m->x.root,
+            true,
+            GrabModeAsync,
+            GrabModeAsync,
+            CurrentTime
+        );
+        if (ret == GrabSuccess)
+            return;
+        nanosleep(&ts, NULL);
+    }
+
+    fprintf(stderr, "Failed to grab keyboard\n");
+    exit(1);
+}
+
+
 Menu menu_new(
     const char **strings,
     size_t strings_len,
@@ -378,6 +405,9 @@ Menu menu_new(
 
     Matches matches = matches_init(strings, strings_len);
 
+    XIM xim = XOpenIM(dpy, NULL, NULL, NULL);
+    XIC xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, NULL);
+
     return (Menu) {
         .x.dpy                  = dpy,
         .x.root                 = root,
@@ -388,6 +418,7 @@ Menu menu_new(
         .x.win                  = win,
         .x.vis                  = vis,
         .x.xft_drawctx          = xft_draw_ctx,
+        .x.xic                  = xic,
         .opts.wrapping          = wrapping,
         .opts.case_sensitive    = case_sensitive,
         .opts.scroll_next_page  = scroll_next_page,
@@ -415,26 +446,6 @@ Menu menu_new(
 
 }
 
-static void grab_keyboard(Menu *m) {
-    struct timespec ts = { .tv_sec = 0, .tv_nsec = 1e6 };
-
-    for (int i=0; i < 1000; ++i) {
-        int ret = XGrabKeyboard(
-            m->x.dpy,
-            m->x.root,
-            true,
-            GrabModeAsync,
-            GrabModeAsync,
-            CurrentTime
-        );
-        if (ret == GrabSuccess)
-            return;
-        nanosleep(&ts, NULL);
-    }
-
-    fprintf(stderr, "Failed to grab keyboard\n");
-    exit(1);
-}
 
 void menu_run(Menu *m) {
 
