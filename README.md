@@ -53,3 +53,9 @@ The keybindings are generally inspired by GNU readline and Vim, aiming to satisf
 - Clear selection: `<C-u>`
 - Quit: `<ESC>`, `<C-c>`
 - Select entry: `<CR>`
+
+## Command Line Options
+
+- `-e`: enumerate output (useful for scripting)
+- `-h`: print usage
+- `-v`: print version
