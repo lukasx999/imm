@@ -53,7 +53,17 @@ static void free_strings(char **strings, size_t capacity) {
 
 
 
-int main(void) {
+int main(int argc, char **argv) {
+
+    // TODO: use getopt()
+
+    if (argc > 2) {
+        fprintf(stderr, "Incorrect Usage\n");
+        exit(1);
+    }
+
+    bool print_index = argc == 2 && !strcmp("-e", argv[1]);
+
 
     size_t strings_len      = 0;
     size_t strings_capacity = 0;
@@ -84,7 +94,8 @@ int main(void) {
         scroll_next_page,
         show_scrollbar,
         show_animations,
-        show_matchcount
+        show_matchcount,
+        print_index
     );
 
     menu_run(&menu);

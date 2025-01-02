@@ -1,7 +1,7 @@
 - [ ] integrate text truncation into `draw_string()`
 - [ ] query cursor
 - [ ] implement fuzzy finding
-- [ ] show matches count at the right in the textbox (5/10)
+- [x] show matches count at the right in the textbox (5/10)
 - [x] add vertical bar before cursorline like fzf
 - [x] add `install` target to Makefile
 - [x] implement scrolling

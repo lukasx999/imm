@@ -8,10 +8,6 @@ apps_stripped=$(echo "$apps" | xargs -I {} grep 'Name=.*' -x -m 1 {} | sed 's/Na
 sel=$(echo "$apps_stripped" | xmenu)
 [[ -z $sel ]] && exit 1
 
-# TODO: this
-echo $sel
-
-exit 0
 filename="${APPDIR}/${sel}.desktop"
 if [[ ! -f $filename ]]; then exit 1; fi
 

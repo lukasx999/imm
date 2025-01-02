@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/types.h>
 
 
 
@@ -21,6 +22,10 @@ extern void matches_sort(Matches *m, const char *query, bool case_sensitive);
 
 /* returns NULL when indexed out of bounds */
 extern const char *matches_get(const Matches *m, size_t index);
+
+
+/* returns the index of the string `str` in the NON-SORTED list `strings`, or -1 if not found */
+extern ssize_t matches_search(const Matches *m, const char *str);
 
 extern void matches_destroy(Matches *m);
 

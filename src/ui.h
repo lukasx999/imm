@@ -36,6 +36,7 @@ typedef struct {
         bool scroll_next_page;
         bool show_scrollbar;
         bool show_matchcount;
+        bool print_index;
         int text_spacing;
         int padding_x, padding_y;
         int cursor_width;
@@ -80,7 +81,8 @@ extern Menu menu_new(
     bool scroll_next_page,
     bool show_scrollbar,
     bool show_animations,
-    bool show_matchcount
+    bool show_matchcount,
+    bool print_index
 );
 extern void menu_destroy(Menu *menu);
 extern void menu_run(Menu *menu);

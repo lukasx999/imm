@@ -40,6 +40,14 @@ const char *matches_get(const Matches *m, size_t index) {
     : m->sorted[index];
 }
 
+ssize_t matches_search(const Matches *m, const char *str) {
+    for (size_t i=0; i < m->strings_len; ++i)
+        if (!strcmp(m->strings[i], str))
+            return i;
+    return -1;
+}
+
+
 void matches_destroy(Matches *m) {
     free(m->sorted);
     m->sorted = NULL;

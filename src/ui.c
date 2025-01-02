@@ -19,6 +19,9 @@
 #include "./sort.h"
 
 
+#define ARRAY_SIZE(arr) (sizeof arr / sizeof *arr)
+
+
 
 static unsigned short get_font_height(const Menu *menu) {
     /*
@@ -89,7 +92,7 @@ static void render_ui(Menu *m) {
         );
     }
 
-    // NOTE: the anchor point of strings in Xlib is at the bottom left
+    // anchor point of strings in Xlib is at the bottom left
 
     /* Query */
     int query_offset_y = m->opts.padding_y + get_font_height(m) * 1.5;
@@ -110,7 +113,7 @@ static void render_ui(Menu *m) {
         char matchcount[BUFSIZ] = { 0 };
         snprintf(
             matchcount,
-            sizeof matchcount,
+            ARRAY_SIZE(matchcount),
             "%lu/%lu",
             m->matches.sorted_len,
             m->matches.strings_len
@@ -169,7 +172,7 @@ static void render_ui(Menu *m) {
             const char *truncation_symbol = "...";
             float mean_charsize = (float) get_font_width(m, item) / strlen(item);
             size_t last_char = (m->window_width - m->opts.padding_x) / mean_charsize;
-            strncpy(buf, item, sizeof buf);
+            strncpy(buf, item, ARRAY_SIZE(buf));
             strcpy(
                 buf + last_char - strlen(truncation_symbol) - 2,
                 truncation_symbol
@@ -249,7 +252,7 @@ static void insert(Menu *m, XKeyEvent *key_event) {
         return;
 
     char buf[4] = { 0 };
-    Xutf8LookupString(m->x.xic, key_event, buf, sizeof buf, NULL, NULL);
+    Xutf8LookupString(m->x.xic, key_event, buf, ARRAY_SIZE(buf), NULL, NULL);
     strcat(m->query, buf);
 
 }
@@ -258,7 +261,17 @@ static void select_entry(Menu *m) {
     const char *str = m->matches.sorted_len == 0
         ? m->query
         : m->matches.sorted[m->cursor];
-    puts(str);
+
+    if (m->opts.print_index) {
+        // Not using m->cursor, as it will change as the matches get sorted
+        // `-e` will show the same index for duplicate entries, hence we are remove duplicates
+        // to prevent unexpected behaviour
+        ssize_t index = matches_search(&m->matches, str);
+        assert(index != -1);
+        printf("%lu %s\n", index+1, str);
+    } else
+        puts(str);
+
     m->quit = true;
 }
 
@@ -377,7 +390,7 @@ static void cursor_anim(Menu *m) {
         get_font_height(m)*2
     );
 
-    anim_x += 0.03f;
+    anim_x += 0.09f;
 
 }
 
@@ -406,7 +419,8 @@ Menu menu_new(
     bool scroll_next_page,
     bool show_scrollbar,
     bool show_animations,
-    bool show_matchcount
+    bool show_matchcount,
+    bool print_index
 ) {
 
     Display *dpy  = XOpenDisplay(NULL);
@@ -480,6 +494,7 @@ Menu menu_new(
         .opts.scroll_next_page  = scroll_next_page,
         .opts.show_scrollbar    = show_scrollbar,
         .opts.show_matchcount   = show_matchcount,
+        .opts.print_index       = print_index,
         .opts.padding_x         = padding_x,
         .opts.padding_y         = padding_y,
         .opts.cursor_width      = cursor_width,
@@ -498,7 +513,7 @@ Menu menu_new(
         .quit                   = false,
         .window_height          = height,
         .window_width           = width,
-        .is_cursor_anim_done     = !show_animations,
+        .is_cursor_anim_done    = !show_animations,
     };
 
 }
