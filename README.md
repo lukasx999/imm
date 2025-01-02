@@ -57,5 +57,7 @@ The keybindings are generally inspired by GNU readline and Vim, aiming to satisf
 ## Command Line Options
 
 - `-e`: enumerate output (useful for scripting)
+  - Enumeration will start at 1
+  - if the selected query does not exist within the given list of strings, the returned value will be 0
 - `-h`: print usage
 - `-v`: print version
