@@ -1,3 +1,12 @@
+#define _XOPEN_SOURCE 500
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <assert.h>
+#include <unistd.h>
+#include <getopt.h>
+
 #include "./ui.h"
 
 #ifdef CFG
@@ -63,19 +72,35 @@ static void free_strings(char **strings, size_t capacity) {
 }
 
 
+static void parse_args(int argc, char **argv, bool *print_index) {
+    const char *optstr = "evh";
+    int opt = 0;
+    while ((opt = getopt(argc, argv, optstr)) != -1) {
+        switch (opt) {
+            case 'e': {
+                *print_index = true;
+            } break;
+            case 'v': {
+                printf("XMenu 1.0\n");
+                exit(1);
+            } break;
+            case 'h': {
+                printf("Usage: %s [-e] [-v] [-h]\n", argv[0]);
+                exit(1);
+            } break;
+            default: {
+                exit(1);
+            } break;
+        }
+    }
+}
 
 
 
 int main(int argc, char **argv) {
 
-    // TODO: use getopt()
-
-    if (argc > 2) {
-        fprintf(stderr, "Incorrect Usage\n");
-        exit(1);
-    }
-
-    bool print_index = argc == 2 && !strcmp("-e", argv[1]);
+    bool print_index = false;
+    parse_args(argc, argv, &print_index);
 
 
     size_t strings_len      = 0;
