@@ -10,6 +10,7 @@ enum { COLOR_BG, COLOR_HL, COLOR_BORDER, COLOR_STRINGS, COLOR_QUERY };
 // out_capacity is needed for freeing the allocated memory
 static char **get_strings(size_t *out_strcount, size_t *out_capacity) {
 
+    /* Dynarray */
     size_t size     = 0;
     size_t capacity = 5;
     char **items    = malloc(capacity * sizeof(char*));
@@ -22,6 +23,20 @@ static char **get_strings(size_t *out_strcount, size_t *out_capacity) {
     char buf[BUFSIZ] = { 0 };
     while (fgets(buf, BUFSIZ, stdin) != NULL) {
 
+        buf[strcspn(buf, "\n")] = '\0';
+
+        /* Remove duplicate entries */
+        /* `-e` will show the same index for duplicate entries, */
+        /* hence we are remove duplicates to prevent unexpected behaviour */
+        bool is_duplicate = false;
+        for (size_t i=0; i < size; ++i)
+            if (!strcmp(items[i], buf))
+                is_duplicate = true;
+
+        if (is_duplicate)
+            continue;
+
+        /* Reallocating dynarray */
         if (size == capacity) {
             capacity *= 2;
             items = realloc(items, capacity * sizeof(char*));
@@ -31,9 +46,7 @@ static char **get_strings(size_t *out_strcount, size_t *out_capacity) {
             }
         }
 
-        buf[strcspn(buf, "\n")] = '\0';
         strncpy(items[size++], buf, BUFSIZ);
-
     }
 
     *out_strcount = size;

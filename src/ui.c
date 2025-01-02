@@ -264,8 +264,6 @@ static void select_entry(Menu *m) {
 
     if (m->opts.print_index) {
         // Not using m->cursor, as it will change as the matches get sorted
-        // `-e` will show the same index for duplicate entries, hence we are remove duplicates
-        // to prevent unexpected behaviour
         ssize_t index = matches_search(&m->matches, str);
         assert(index != -1);
         printf("%lu %s\n", index+1, str);

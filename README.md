@@ -23,6 +23,8 @@
 XMenu works similar to other run-launchers like fzf and dmenu.\
 It takes newline delimited strings from `stdin` as input, gives you a prompt, then writes the selected entry back to `stdout`.
 
+> **NOTE:** XMenu will always remove duplicate strings from its given input
+
 **Examples:**
 
 - `echo "foo\nbar\nbaz" | xmenu`
