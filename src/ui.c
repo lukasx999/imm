@@ -264,7 +264,7 @@ static void select_entry(Menu *m) {
     if (m->opts.print_index) {
         // Not using m->cursor, as it will change as the matches get sorted
         ssize_t index = matches_search(&m->matches, str);
-        assert(index != -1);
+        // if the element is not found, the enumerated value will be 0
         printf("%lu %s\n", index+1, str);
     } else
         puts(str);
