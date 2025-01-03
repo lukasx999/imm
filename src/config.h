@@ -9,8 +9,8 @@ static const char *colors[] = {
     [COLOR_QUERY]   = "#e3e3e3",
 };
 
-static const char *font_name = "JetBrainsMono Nerd Font:size=20";
-// static const char *font_name = "Roboto:size=18";
+// static const char *font_name = "JetBrainsMono Nerd Font:size=20";
+static const char *font_name = "Roboto:size=18";
 
 static int position_x        = 0,
            position_y        = 0,
