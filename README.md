@@ -38,7 +38,7 @@ baz
 ```
 
 This gives it a lot of potential for usage in shell scripts.\
-A script for using XMenu as a launcher for desktop applications can be found at `src/xmenu_run`.
+A script for using XMenu as a launcher for desktop applications can be found at `src/xmenu_run.sh`.
 
 ## Configuration
 
@@ -57,8 +57,20 @@ The keybindings are generally inspired by GNU readline and Vim, aiming to satisf
 ## Command Line Options
 
 - `-e`: **e**numerate output (useful for scripting)
-  - Enumeration will start at 1
+  - Enumeration will start at 1 (because it makes sense in the context of shell scripting)
   - if the selected query does not exist within the given list of strings, the returned value will be 0
 - `-u`: filter duplicate entries (**u**nique entries only)
 - `-h`: print usage (**h**elp)
 - `-v`: print **v**ersion
+
+> **NOTE:** When using XMenu with the `-e` and without the `-u` option, the enumerated value for duplicate entries, will always be the one of the first entry.
+
+**for example:**
+
+```sh
+foo 
+bar
+bar
+bar # <- will return 2 instead of 4
+baz
+```
