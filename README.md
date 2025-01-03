@@ -27,8 +27,8 @@ It takes newline delimited strings from `stdin` as input, gives you a prompt, th
 
 **Examples:**
 
-- `echo "foo\nbar\nbaz" | xmenu`
-- `xmenu < somefile.txt`
+`echo "foo\nbar\nbaz" | xmenu`
+`xmenu < somefile.txt`
 ```sh
 xmenu
 foo
