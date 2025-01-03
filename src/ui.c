@@ -61,6 +61,7 @@ static void draw_string(
     char buf[BUFSIZ] = { 0 };
     strcpy(buf, str);
 
+    // BUG: not working correctly with non-monospace fonts
     bool is_too_long = get_font_width(m, buf) > m->window_width - (lpad + rpad);
     if (is_too_long) {
         const char *symbol = "...";
@@ -149,6 +150,7 @@ static void render_ui(Menu *m) {
     );
 
     /* hide cursor if query is colliding with matchcounter */
+    // BUG: not working correctly with non-monospace fonts
     m->show_cursor = get_font_width(m, m->query) < m->window_width - (m->opts.padding_x + get_font_width(m, matchcount));
 
 
@@ -301,6 +303,7 @@ static void handle_keypress(Menu *m, XKeyEvent *key_event) {
                 break;
             case XK_L:
             case XK_F:
+                // TODO: implement query cursor
                 assert(!"todo: move cursor");
                 break;
             case XK_H:
