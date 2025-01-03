@@ -95,7 +95,13 @@ static void parse_args(int argc, char **argv, bool *print_index) {
     }
 }
 
-
+/*
+    TODO: find a proper name for the application
+    possible names:
+    - imm
+    - lake
+    - flow
+*/
 
 int main(int argc, char **argv) {
 
