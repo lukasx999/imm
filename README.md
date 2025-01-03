@@ -63,7 +63,7 @@ The keybindings are generally inspired by GNU readline and Vim, aiming to satisf
 - `-h`: print usage (**h**elp)
 - `-v`: print **v**ersion
 
-> **NOTE:** When using XMenu with the `-e` and without the `-u` option, the enumerated value for duplicate entries, will always be the one of the first entry.
+## **NOTE:** When using XMenu with the `-e` and without the `-u` option, the enumerated value for duplicate entries, will always be the one of the first entry.
 
 **for example:**
 
