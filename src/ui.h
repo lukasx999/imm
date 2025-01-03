@@ -48,6 +48,7 @@ typedef struct {
 
     /* State of the UI */
     bool is_cursor_anim_done;
+    bool show_cursor;
     const int window_width, window_height;
     Matches matches;
     char query[QUERY_MAXLEN]; // Input field

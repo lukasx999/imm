@@ -48,16 +48,35 @@ static unsigned long get_color(Display *dpy, Colormap cmap, const char *color) {
     return xcolor.pixel;
 }
 
-static void draw_string(const Menu *menu, int x, int y, const char *str, const XftColor *color) {
+static void draw_string(
+    const Menu *m,
+    int x,
+    int y,
+    const char *str,
+    const XftColor *color,
+    int lpad,
+    int rpad
+) {
+    /* Truncating long strings */
+    char buf[BUFSIZ] = { 0 };
+    strcpy(buf, str);
+
+    bool is_too_long = get_font_width(m, buf) > m->window_width - (lpad + rpad);
+    if (is_too_long) {
+        const char *symbol = "...";
+        float mean_charsize = (float) get_font_width(m, buf) / strlen(buf);
+        size_t last_char = (m->window_width - rpad) / mean_charsize;
+        strcpy(buf + last_char - strlen(symbol) - 1, symbol);
+    }
+
     XftDrawStringUtf8(
-        menu->x.xft_drawctx, color, menu->opts.font,
+        m->x.xft_drawctx, color, m->opts.font,
         x, y,
-        (FcChar8 *) str, strlen(str)
+        (FcChar8 *) buf, strlen(buf)
     );
 }
 
-
-static int get_string_height(const Menu *m) {
+static inline int get_string_height(const Menu *m) {
     return get_font_height(m) * 2 + m->opts.text_spacing;
 }
 
@@ -79,8 +98,9 @@ static void render_ui(Menu *m) {
         m->cursor = m->scroll_offset = 0;
 
 
+
     /* Cursor */
-    if (m->is_cursor_anim_done) {
+    if (m->is_cursor_anim_done && m->show_cursor) {
         XftDrawRect(
             m->x.xft_drawctx,
             &m->opts.color_query,
@@ -93,23 +113,11 @@ static void render_ui(Menu *m) {
 
     // anchor point of strings in Xlib is at the bottom left
 
-    /* Query */
     int query_offset_y = m->opts.padding_y + get_font_height(m) * 1.5;
-    draw_string(
-        m,
-        m->opts.padding_x,
-        query_offset_y,
-        m->query,
-        &m->opts.color_query
-    );
-
-
-    // TODO: dont show matchcount if colliding with query
 
     /* Match count */
-    // if (m->is_cursor_anim_done && m->opts.show_matchcount) {
+    char matchcount[BUFSIZ] = { 0 };
     if (m->opts.show_matchcount) {
-        char matchcount[BUFSIZ] = { 0 };
         snprintf(
             matchcount,
             ARRAY_SIZE(matchcount),
@@ -123,9 +131,25 @@ static void render_ui(Menu *m) {
             m->window_width - m->opts.padding_x - get_font_width(m, matchcount),
             query_offset_y,
             matchcount,
-            &m->opts.color_query
+            &m->opts.color_query,
+            0, 0
         );
     }
+
+
+    /* Query */
+    draw_string(
+        m,
+        m->opts.padding_x,
+        query_offset_y,
+        m->query,
+        &m->opts.color_query,
+        m->opts.padding_x,
+        get_font_width(m, matchcount)
+    );
+
+    /* hide cursor if query is colliding with matchcounter */
+    m->show_cursor = get_font_width(m, m->query) < m->window_width - (m->opts.padding_x + get_font_width(m, matchcount));
 
 
 
@@ -164,28 +188,15 @@ static void render_ui(Menu *m) {
 
         int offset_x = m->opts.padding_x * 2;
 
-        /* Truncating long strings */
-        char buf[BUFSIZ] = { 0 };
-        bool is_too_long = get_font_width(m, item) > m->window_width - (offset_x + m->opts.padding_x);
-        if (is_too_long) {
-            const char *truncation_symbol = "...";
-            float mean_charsize = (float) get_font_width(m, item) / strlen(item);
-            size_t last_char = (m->window_width - m->opts.padding_x) / mean_charsize;
-            strncpy(buf, item, ARRAY_SIZE(buf));
-            strcpy(
-                buf + last_char - strlen(truncation_symbol) - 2,
-                truncation_symbol
-            );
-            item = buf;
-        }
-
         int y = string_height * i;
         draw_string(
             m,
             offset_x,
             query_offset_y + string_height + y,
             item,
-            &m->opts.color_strings
+            &m->opts.color_strings,
+            offset_x,
+            m->opts.padding_x
         );
     }
 
@@ -267,8 +278,9 @@ static void select_entry(Menu *m) {
         // if the element is not found, the enumerated value will be 0
         printf("%lu %s\n", index+1, str);
     } else
-        puts(str);
+    puts(str);
 
+    // TODO: return exit code 1 when selected entry is not in matches
     m->quit = true;
 }
 
@@ -506,6 +518,7 @@ Menu menu_new(
         .matches                = matches,
         .cursor                 = 0,
         .scroll_offset          = 0,
+        .show_cursor            = true,
         .query                  = { 0 },
         .quit                   = false,
         .window_height          = height,
