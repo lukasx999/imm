@@ -3,7 +3,7 @@ set -euo pipefail
 
 APPDIR=/usr/share/applications
 
-apps=$(find $APPDIR -type f -name '*.desktop' | sort)
+apps=$(find $APPDIR -type f -name '*.desktop')
 apps_stripped=$(echo "$apps" | xargs -I {} grep 'Name=.*' -x -m 1 {} | sed 's/Name=//')
 
 sel=$(echo "$apps_stripped" | xmenu -e)

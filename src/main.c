@@ -17,7 +17,11 @@ enum { COLOR_BG, COLOR_HL, COLOR_BORDER, COLOR_STRINGS, COLOR_QUERY };
 
 
 // out_capacity is needed for freeing the allocated memory
-static char **get_strings(size_t *out_strcount, size_t *out_capacity) {
+static char **get_strings(
+    size_t *out_strcount,
+    size_t *out_capacity,
+    bool filter_duplicates
+) {
 
     /* Dynarray */
     size_t size     = 0;
@@ -42,7 +46,7 @@ static char **get_strings(size_t *out_strcount, size_t *out_capacity) {
             if (!strcmp(items[i], buf))
                 is_duplicate = true;
 
-        if (is_duplicate)
+        if (is_duplicate && filter_duplicates)
             continue;
 
         /* Reallocating dynarray */
@@ -72,20 +76,33 @@ static void free_strings(char **strings, size_t capacity) {
 }
 
 
-static void parse_args(int argc, char **argv, bool *print_index) {
-    const char *optstr = "evh";
+static inline void print_usage(char **argv) {
+    fprintf(stderr, "Usage: %s [-e] [-u] [-v] [-h]\n", argv[0]);
+}
+
+typedef struct {
+    bool print_index;
+    bool filter_duplicates;
+} Args;
+
+
+static void parse_args(int argc, char **argv, Args *args) {
+    const char *optstr = "evhu";
     int opt = 0;
     while ((opt = getopt(argc, argv, optstr)) != -1) {
         switch (opt) {
             case 'e': {
-                *print_index = true;
+                args->print_index = true;
             } break;
             case 'v': {
                 printf("XMenu 1.0\n");
                 exit(1);
             } break;
+            case 'u': {
+                args->filter_duplicates = true;
+            } break;
             case 'h': {
-                printf("Usage: %s [-e] [-v] [-h]\n", argv[0]);
+                print_usage(argv);
                 exit(1);
             } break;
             default: {
@@ -103,15 +120,17 @@ static void parse_args(int argc, char **argv, bool *print_index) {
     - flow
 */
 
+
+
+
 int main(int argc, char **argv) {
 
-    bool print_index = false;
-    parse_args(argc, argv, &print_index);
-
+    Args args = { false };
+    parse_args(argc, argv, &args);
 
     size_t strings_len      = 0;
     size_t strings_capacity = 0;
-    char **strings          = get_strings(&strings_len, &strings_capacity);
+    char **strings = get_strings(&strings_len, &strings_capacity, args.filter_duplicates);
 
     Menu menu = menu_new(
         (const char **) strings,
@@ -139,7 +158,7 @@ int main(int argc, char **argv) {
         show_scrollbar,
         show_animations,
         show_matchcount,
-        print_index
+        args.print_index
     );
 
     menu_run(&menu);

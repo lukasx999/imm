@@ -25,8 +25,6 @@ or:
 XMenu works similar to other run-launchers like fzf and dmenu.\
 It takes newline delimited strings from `stdin` as input, gives you a prompt, then writes the selected entry back to `stdout`.
 
-> **NOTE:** XMenu will always remove duplicate strings from its given input
-
 **Examples:**
 
 - `echo "foo\nbar\nbaz" | xmenu`
@@ -58,8 +56,9 @@ The keybindings are generally inspired by GNU readline and Vim, aiming to satisf
 
 ## Command Line Options
 
-- `-e`: enumerate output (useful for scripting)
+- `-e`: **e**numerate output (useful for scripting)
   - Enumeration will start at 1
   - if the selected query does not exist within the given list of strings, the returned value will be 0
-- `-h`: print usage
-- `-v`: print version
+- `-u`: filter duplicate entries (**u**nique entries only)
+- `-h`: print usage (**h**elp)
+- `-v`: print **v**ersion
