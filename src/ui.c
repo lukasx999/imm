@@ -270,19 +270,28 @@ static void insert(Menu *m, XKeyEvent *key_event) {
 }
 
 static void select_entry(Menu *m) {
-    const char *str = m->matches.sorted_len == 0
-        ? m->query
-        : m->matches.sorted[m->cursor];
+
+    // const char *str = m->matches.sorted_len == 0
+    //     ? m->query
+    //     : m->matches.sorted[m->cursor];
+
+    const char *str = matches_get(&m->matches, m->cursor);
+    // Nothing matches, using query
+    if (str == NULL) {
+        assert(m->matches.sorted_len == 0);
+        str = m->query;
+        m->exit_code = 1;
+    }
 
     if (m->opts.print_index) {
         // Not using m->cursor, as it will change as the matches get sorted
         ssize_t index = matches_search(&m->matches, str);
         // if the element is not found, the enumerated value will be 0
         printf("%lu %s\n", index+1, str);
-    } else
-    puts(str);
+    } else {
+        puts(str);
+    }
 
-    // TODO: return exit code 1 when selected entry is not in matches
     m->quit = true;
 }
 
@@ -521,6 +530,7 @@ Menu menu_new(
         .matches                = matches,
         .cursor                 = 0,
         .scroll_offset          = 0,
+        .exit_code              = 0,
         .show_cursor            = true,
         .query                  = { 0 },
         .quit                   = false,
@@ -531,7 +541,7 @@ Menu menu_new(
 
 }
 
-void menu_run(Menu *m) {
+int menu_run(Menu *m) {
 
     grab_keyboard(m);
 
@@ -554,6 +564,9 @@ void menu_run(Menu *m) {
         }
 
     }
+
+    return m->exit_code;
+
 }
 
 void menu_destroy(Menu *menu) {

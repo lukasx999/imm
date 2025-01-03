@@ -55,6 +55,7 @@ typedef struct {
     int cursor;
     int scroll_offset;
     bool quit;
+    int exit_code;
 
 } Menu;
 
@@ -86,7 +87,7 @@ extern Menu menu_new(
     bool print_index
 );
 extern void menu_destroy(Menu *menu);
-extern void menu_run(Menu *menu);
+extern int menu_run(Menu *menu);
 
 
 

@@ -3,6 +3,7 @@ set -euo pipefail
 
 APPDIR=/usr/share/applications
 
+# TODO: remove duplicate entries
 apps=$(find $APPDIR -type f -name '*.desktop')
 apps_stripped=$(echo "$apps" | xargs -I {} grep 'Name=.*' -x -m 1 {} | sed 's/Name=//')
 

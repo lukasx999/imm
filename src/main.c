@@ -118,9 +118,16 @@ static void parse_args(int argc, char **argv, Args *args) {
     - imm
     - lake
     - flow
+    - lanza
+    - ausf
 */
 
 
+
+/*
+    TODO: add option for the user passing in an enumerated list,
+    not showing the number, but printing at selection
+*/
 
 
 int main(int argc, char **argv) {
@@ -161,11 +168,11 @@ int main(int argc, char **argv) {
         args.print_index
     );
 
-    menu_run(&menu);
+    int exit_code = menu_run(&menu);
     menu_destroy(&menu);
     free_strings(strings, strings_capacity);
 
-    return EXIT_SUCCESS;
+    return exit_code;
 
 }
 

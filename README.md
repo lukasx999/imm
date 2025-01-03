@@ -78,3 +78,7 @@ bar
 bar # <- will return 2 instead of 4
 baz
 ```
+
+## Exit Code
+
+Exit code is 1, if no string was matched, and the current query is returned
