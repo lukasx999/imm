@@ -271,10 +271,6 @@ static void insert(Menu *m, XKeyEvent *key_event) {
 
 static void select_entry(Menu *m) {
 
-    // const char *str = m->matches.sorted_len == 0
-    //     ? m->query
-    //     : m->matches.sorted[m->cursor];
-
     const char *str = matches_get(&m->matches, m->cursor);
     // Nothing matches, using query
     if (str == NULL) {
