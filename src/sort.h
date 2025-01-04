@@ -15,6 +15,8 @@ typedef struct {
     size_t       sorted_len;
 } Matches;
 
+// TODO: fuzzy finding
+
 extern Matches matches_init(const char **strings, size_t strings_len);
 /* Matches `query` against the list of strings in `m->strings`, and puts the results in `m->sorted` */
 
