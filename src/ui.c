@@ -448,6 +448,8 @@ Menu menu_new(
     GC gc         = XCreateGC(dpy, root, 0, NULL);
     Screen *scr   = XScreenOfDisplay(dpy, scr_num);
     Visual *vis   = XDefaultVisual(dpy, scr_num);
+    XIM xim       = XOpenIM(dpy, NULL, NULL, NULL);
+    XIC xic       = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, NULL);
 
     /* Init Window */
     int width  = width_ratio * XWidthOfScreen(scr) - border_width * 2;
@@ -491,9 +493,6 @@ Menu menu_new(
     /* -------- */
 
     Matches matches = matches_init(strings, strings_len);
-
-    XIM xim = XOpenIM(dpy, NULL, NULL, NULL);
-    XIC xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, NULL);
 
     return (Menu) {
         .x.dpy                  = dpy,

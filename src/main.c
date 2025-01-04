@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <dirent.h>
 
 #include "./ui.h"
 
@@ -130,14 +131,49 @@ static void parse_args(int argc, char **argv, Args *args) {
 */
 
 
+
+typedef struct {
+    char exec[BUFSIZ];
+    char name[BUFSIZ];
+} DesktopEntry;
+
+
+static DesktopEntry get_entry_from_file(const char *filename) {
+}
+
+
+static void run_desktop(void) {
+
+    const char *appdir = "/usr/share/applications/";
+    DIR *dir = opendir(appdir);
+    assert(dir != NULL);
+
+    struct dirent *entry = NULL;
+    while ((entry = readdir(dir)) != NULL) {
+        DesktopEntry desktopentry = get_entry_from_file(entry->d_name);
+    }
+
+    closedir(dir);
+
+}
+
+
+
+
 int main(int argc, char **argv) {
+
+    // run_desktop();
+    // return 0;
+
 
     Args args = { false };
     parse_args(argc, argv, &args);
 
     size_t strings_len      = 0;
     size_t strings_capacity = 0;
-    char **strings = get_strings(&strings_len, &strings_capacity, args.filter_duplicates);
+    char **strings = get_strings(&strings_len,
+                                 &strings_capacity,
+                                 args.filter_duplicates);
 
     Menu menu = menu_new(
         (const char **) strings,
