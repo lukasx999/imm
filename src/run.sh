@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# echo 'foo\nbar' | xmenu
-# exit 0
 # TODO: integrate this into the C code, cause bash is too slow
 
 APPDIR=/usr/share/applications

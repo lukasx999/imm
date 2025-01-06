@@ -279,15 +279,7 @@ static void select_entry(Menu *m) {
         m->exit_code = 1;
     }
 
-    if (m->opts.print_index) {
-        // Not using m->cursor, as it will change as the matches get sorted
-        ssize_t index = matches_search(&m->matches, str);
-        // if the element is not found, the enumerated value will be 0
-        printf("%lu %s\n", index+1, str);
-    } else {
-        puts(str);
-    }
-
+    puts(str);
     m->quit = true;
 }
 
@@ -436,8 +428,7 @@ Menu menu_new(
     bool scroll_next_page,
     bool show_scrollbar,
     bool show_animations,
-    bool show_matchcount,
-    bool print_index
+    bool show_matchcount
 ) {
 
     Display *dpy  = XOpenDisplay(NULL);
@@ -463,7 +454,7 @@ Menu menu_new(
         .event_mask        = KeyPressMask | ExposureMask,
     };
 
-    XClassHint class_hint = { "xmenu", "xmenu" };
+    XClassHint class_hint = { "imm", "imm" };
 
     Window win = XCreateWindow(
         dpy, root,
@@ -510,7 +501,6 @@ Menu menu_new(
         .opts.scroll_next_page  = scroll_next_page,
         .opts.show_scrollbar    = show_scrollbar,
         .opts.show_matchcount   = show_matchcount,
-        .opts.print_index       = print_index,
         .opts.padding_x         = padding_x,
         .opts.padding_y         = padding_y,
         .opts.cursor_width      = cursor_width,

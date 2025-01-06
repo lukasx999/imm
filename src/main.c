@@ -1,4 +1,3 @@
-#define _XOPEN_SOURCE 500
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -18,11 +17,7 @@ enum { COLOR_BG, COLOR_HL, COLOR_BORDER, COLOR_STRINGS, COLOR_QUERY };
 
 
 // out_capacity is needed for freeing the allocated memory
-static char **get_strings(
-    size_t *out_strcount,
-    size_t *out_capacity,
-    bool filter_duplicates
-) {
+static char **get_strings(size_t *out_strcount, size_t *out_capacity) {
 
     /* Dynarray */
     size_t size     = 0;
@@ -38,17 +33,6 @@ static char **get_strings(
     while (fgets(buf, BUFSIZ, stdin) != NULL) {
 
         buf[strcspn(buf, "\n")] = '\0';
-
-        /* Remove duplicate entries */
-        /* `-e` will show the same index for duplicate entries, */
-        /* hence we are remove duplicates to prevent unexpected behaviour */
-        bool is_duplicate = false;
-        for (size_t i=0; i < size; ++i)
-            if (!strcmp(items[i], buf))
-                is_duplicate = true;
-
-        if (is_duplicate && filter_duplicates)
-            continue;
 
         /* Reallocating dynarray */
         if (size == capacity) {
@@ -77,34 +61,22 @@ static void free_strings(char **strings, size_t capacity) {
 }
 
 
-static inline void print_usage(char **argv) {
-    fprintf(stderr, "Usage: %s [-e] [-u] [-v] [-h]\n", argv[0]);
-}
-
 typedef struct {
-    bool print_index;
-    bool filter_duplicates;
 } Args;
 
 
 static void parse_args(int argc, char **argv, Args *args) {
-    const char *optstr = "evhu";
+    const char *optstr = "vh";
     int opt = 0;
     while ((opt = getopt(argc, argv, optstr)) != -1) {
         switch (opt) {
-            case 'e': {
-                args->print_index = true;
-            } break;
             case 'v': {
-                printf("XMenu 1.0\n");
-                exit(1);
-            } break;
-            case 'u': {
-                args->filter_duplicates = true;
+                printf("imm 1.0\n");
+                exit(0);
             } break;
             case 'h': {
-                print_usage(argv);
-                exit(1);
+                fprintf(stderr, "Usage: %s [-v] [-h]\n", argv[0]);
+                exit(0);
             } break;
             default: {
                 exit(1);
@@ -112,23 +84,6 @@ static void parse_args(int argc, char **argv, Args *args) {
         }
     }
 }
-
-/*
-    TODO: find a proper name for the application
-    possible names:
-    - imm
-    - lake
-    - flow
-    - lanza
-    - ausf
-*/
-
-
-
-/*
-    TODO: add option for the user passing in an enumerated list,
-    not showing the number, but printing at selection
-*/
 
 
 
@@ -171,9 +126,7 @@ int main(int argc, char **argv) {
 
     size_t strings_len      = 0;
     size_t strings_capacity = 0;
-    char **strings = get_strings(&strings_len,
-                                 &strings_capacity,
-                                 args.filter_duplicates);
+    char **strings = get_strings(&strings_len, &strings_capacity);
 
     Menu menu = menu_new(
         (const char **) strings,
@@ -200,8 +153,7 @@ int main(int argc, char **argv) {
         scroll_next_page,
         show_scrollbar,
         show_animations,
-        show_matchcount,
-        args.print_index
+        show_matchcount
     );
 
     int exit_code = menu_run(&menu);

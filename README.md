@@ -1,4 +1,4 @@
-# XMenu
+# imm
 
 ## A suckless-style run launcher
 
@@ -18,29 +18,24 @@
 **or:**
 - `make install` (to install to `INSTALL_DIR`)
 
-> **NOTE:** `make install` will install `xmenu`, as well as `xmenu_run` to the system.
-
 ### Usage
 
-XMenu works similar to other run-launchers like fzf and dmenu.\
+imm works similar to other run-launchers like fzf and dmenu.\
 It takes newline delimited strings from `stdin` as input, gives you a prompt, then writes the selected entry back to `stdout`.
 
 **Examples:**
 
-`echo "foo\nbar\nbaz" | xmenu`
+`echo "foo\nbar\nbaz" | imm`
 
-`xmenu < somefile.txt`
+`imm < somefile.txt`
 
 ```sh
-xmenu
+imm
 foo
 bar
 baz
 ^D
 ```
-
-This gives it a lot of potential for usage in shell scripts.\
-A script for using XMenu as a launcher for desktop applications can be found at `src/xmenu_run.sh`.
 
 ## Configuration
 
@@ -58,26 +53,8 @@ The keybindings are generally inspired by GNU readline and Vim, aiming to satisf
 
 ## Command Line Options
 
-- `-e`: **e**numerate output (useful for scripting)
-  - Enumeration will start at 1 (because it makes sense in the context of shell scripting)
-  - if the selected query does not exist within the given list of strings, the returned value will be 0
-- `-u`: filter duplicate entries (**u**nique entries only)
 - `-h`: print usage (**h**elp)
 - `-v`: print **v**ersion
-
-## NOTE
-
-When using XMenu with the `-e` and without the `-u` option, the enumerated value for duplicate entries, will always be the one of the first entry.
-
-*for example:*
-
-```sh
-foo 
-bar
-bar
-bar # <- will return 2 instead of 4
-baz
-```
 
 ## Exit Code
 

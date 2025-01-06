@@ -4,11 +4,11 @@ CFLAGS=-Wall -Wextra -ggdb -std=c99 -pedantic -O3 `pkg-config --cflags x11 xft`
 LIBS=-lm `pkg-config --libs x11 xft`
 DEPS=ui.h sort.h config.h
 FILES=main.o ui.o sort.o
-BIN=xmenu
+BIN=imm
 
-all: xmenu
+all: imm
 
-xmenu: $(FILES) $(DEPS)
+imm: $(FILES) $(DEPS)
 	@$(CC) $(CFLAGS) $(LIBS) $^ -o $(BIN)
 	@echo CC $^
 
@@ -20,10 +20,9 @@ clean:
 	rm *.o $(BIN)
 
 install: all
-	cp -f xmenu $(INSTALL_DIR)
-	cp -f xmenu_run.sh $(INSTALL_DIR)/xmenu_run
+	cp -f imm $(INSTALL_DIR)
 
 uninstall:
-	rm -f $(INSTALL_DIR)/xmenu $(INSTALL_DIR)/xmenu_run
+	rm -f $(INSTALL_DIR)/imm
 
 .PHONY: clean install uninstall
