@@ -62,14 +62,18 @@ static void free_strings(char **strings, size_t capacity) {
 
 
 typedef struct {
+    bool run_desktop;
 } Args;
 
 
 static void parse_args(int argc, char **argv, Args *args) {
-    const char *optstr = "vh";
+    const char *optstr = "vhd";
     int opt = 0;
     while ((opt = getopt(argc, argv, optstr)) != -1) {
         switch (opt) {
+            case 'd': {
+                args->run_desktop = true;
+            } break;
             case 'v': {
                 printf("imm 1.0\n");
                 exit(0);
@@ -117,12 +121,12 @@ static void run_desktop(void) {
 
 int main(int argc, char **argv) {
 
-    // run_desktop();
-    // return 0;
-
-
     Args args = { false };
     parse_args(argc, argv, &args);
+
+    // TODO: this
+    if (args.run_desktop)
+        assert(!"todo!");
 
     size_t strings_len      = 0;
     size_t strings_capacity = 0;
